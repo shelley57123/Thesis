@@ -43,8 +43,7 @@ def ms2nd(BW_FILE,loc):
             lev += 1
             # mymap2 = pygmaps.maps(37.78713, -122.42392, 13) 
             try:
-
-                labels2, cluster_centers2, n_clusters_2 = ms1st(band[lev],loc)
+                labels2, cluster_centers2, n_clusters_2, ms2 = ms1st(band[lev],loc)
                 labels_copy = labels2 #2nd layer label
 
                 print("number of estimated clusters : %d" % n_clusters_2)
@@ -98,8 +97,8 @@ def ms2nd(BW_FILE,loc):
                 gmap = False
         if gmap:
             
-            f = open(BW_FILE,'r')
+            f = open(BW_FILE,'w')
             f.write(str(band[lev]))
             f.close()
 
-            return [labels2, cluster_centers2, n_clusters_2]
+            return [labels2, cluster_centers2, n_clusters_2, ms2]
