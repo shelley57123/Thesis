@@ -24,6 +24,8 @@ import drawGmap
 FILE = './data/sf rm del excel2.csv'
 DIC_FILE = './data/dic.txt'
 BW_FILE = './data/bandwidth.txt'
+LDA_FILE = './data/ldac.txt'
+LDA_ZERO_FILE = './data/ldac_zero.txt'
 
 def main():
     print '===========Start Time==========='
@@ -48,7 +50,7 @@ def main():
     zeros = [0]*len(points)
     #1st layer label
     points = np.hstack((points, np.transpose([labels,zeros]) ))
-    drawGmap.drawLayer(labels, cluster_centers, n_clusters_, loc, 1)
+    #drawGmap.drawLayer(labels, cluster_centers, n_clusters_, loc, 1)
 
 
     """2nd layer"""
@@ -60,9 +62,16 @@ def main():
     for i in range(len(points)):
         #for each point, find it's landmark's new clus
         points[i,-2] = labelsNew[points[i,-1]]
-    drawGmap.drawLayer(labels2, cluster_centers2, n_clusters_2, loc, 2)
+    #drawGmap.drawLayer(labels2, cluster_centers2, n_clusters_2, loc, 2)
 
     clus_num = n_clusters_2
+
+    if not os.path.isfile(LDA_FILE):
+    	lda_m = ldaAdd.saveLda(clus_num, dic, points, LDA_FILE, LDA_ZERO_FILE)
+    else:
+    	lda_m = ldaAdd.readLda(LDA_FILE, LDA_ZERO_FILE)
+
+    topic_word, doc_topic = ldaAdd.runLda(lda_m, dic)
 
     print '============End Time============'
     print time.strftime('%Y-%m-%d %A %X',time.localtime(time.time())) 

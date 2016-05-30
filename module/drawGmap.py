@@ -1,7 +1,7 @@
 import pygmaps 
 import webbrowser 
 
-colors = ['#FF0000','#0000FF','#00FF00','#00FFFF','FFFF00','#FF00FF','#808080','#FFFFFF','#000000']
+colors = ['#FF0000','#0000FF','#00FF00','#00FFFF','#FFCD00','#FF00FF','#808080','#FFFFFF','#000000']
 
 def drawLayer(labels, cluster_centers, n_clusters_, loc, layerNum):
 	mymap = pygmaps.maps(37.78713, -122.42392, 13) 
