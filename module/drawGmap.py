@@ -1,5 +1,6 @@
 import pygmaps 
 import webbrowser 
+import scoring as sc
 
 colors = ['#FF0000','#0000FF','#00FF00','#00FFFF','#FFCD00','#FF00FF','#808080','#FFFFFF','#000000']
 
@@ -16,22 +17,22 @@ def drawLayer(labels, cluster_centers, n_clusters_, loc, layerNum):
 	webbrowser.open_new_tab(url)
 
 
-def drawTopK(topKPath):
+def drawTopK(topKPath, cluster_centers, cluster_centers2):
     global colors
     mymap = pygmaps.maps(37.78713, -122.42392, 13)
     i = 0
     colorNum = 6
     for score, route, timeLen in topKPath:
         path = []
-        if haveStartClus:
-            mymap.addpoint(cluster_centers[startClus][1], cluster_centers[startClus][0], colors[8], title = str(startClus)+'_clus ')
-            path.append((cluster_centers[startClus][1], cluster_centers[startClus][0]))
+        if sc.haveStartClus:
+            mymap.addpoint(cluster_centers[sc.startClus][1], cluster_centers[sc.startClus][0], colors[8], title = str(sc.startClus)+'_clus ')
+            path.append((cluster_centers[sc.startClus][1], cluster_centers[sc.startClus][0]))
 
         for clus, hr, clusScore in route:
             lms = findClusLms(clus, hr)
             mymap.addpoint(cluster_centers[clus][1], cluster_centers[clus][0], colors[i%colorNum], title = str(clus)+'_clus '+str(hr)+'hr')
             for lmId, lm_time, lm_score in lms:
-                lon, lat = findLmLoc(lmId)
+                lon, lat = findLmLoc(lmId, cluster_centers2)
                 if len(path) == 0:
                     mymap.addpoint(lat, lon, colors[8], title = str(lmId)+'_lm '+str(lm_time)+'hr')
                 else:
@@ -41,10 +42,20 @@ def drawTopK(topKPath):
         mymap.addpath(path, colors[i%colorNum])
         i += 1
 
-    if haveStartClus:
-        drawName = '_'.join(['topK', str(popImp), str(simImp), str(ulmImp), 'StartClus'+str(startClus), seqtime]) + '.html'
+    if sc.haveStartClus:
+        drawName = '_'.join(['topK', str(sc.popImp), str(sc.simImp), str(sc.ulmImp), 'StartClus'+str(sc.startClus), sc.seqtime]) + '.html'
     else:
-        drawName = '_'.join(['topK', str(popImp), str(simImp), str(ulmImp), 'NoStart', seqtime]) + '.html'
+        drawName = '_'.join(['topK', str(sc.popImp), str(sc.simImp), str(sc.ulmImp), 'NoStart', sc.seqtime]) + '.html'
     mymap.draw(drawName)
     url = drawName
     webbrowser.open_new_tab(url)
+
+#output: (long, lat) of landmark's center
+def findLmLoc(lm, cluster_centers2):
+    return cluster_centers2[lm]
+
+#output: list of landmarks(lmId, lm_time, lm_score)
+def findClusLms(inClus, inHr):
+    for clus, hr, score, lms in sc.clus_hr_sort:
+        if clus == inClus and hr == inHr:
+            return lms

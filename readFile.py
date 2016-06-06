@@ -20,12 +20,16 @@ sys.path.append('..')
 import ldaAdd
 import meanshiftAdd as msAdd
 import drawGmap
+import scoring
+
 
 FILE = './data/sf rm del excel2.csv'
 DIC_FILE = './data/dic.txt'
 BW_FILE = './data/bandwidth.txt'
 LDA_FILE = './data/ldac.txt'
 LDA_ZERO_FILE = './data/ldac_zero.txt'
+USER_FILE = './data/user 30.txt'
+
 
 def main():
     print '===========Start Time==========='
@@ -63,15 +67,27 @@ def main():
         #for each point, find it's landmark's new clus
         points[i,-2] = labelsNew[points[i,-1]]
     #drawGmap.drawLayer(labels2, cluster_centers2, n_clusters_2, loc, 2)
-
     clus_num = n_clusters_2
 
+    """run lda"""
     if not os.path.isfile(LDA_FILE):
     	lda_m = ldaAdd.saveLda(clus_num, dic, points, LDA_FILE, LDA_ZERO_FILE)
     else:
     	lda_m = ldaAdd.readLda(LDA_FILE, LDA_ZERO_FILE)
 
     topic_word, doc_topic = ldaAdd.runLda(lda_m, dic)
+    user_topic, users, t = ldaAdd.userTopic(USER_FILE, points, doc_topic)
+
+    """trans/clus time, order score"""
+    scoring.estTransOrder(points, users, cluster_centers)
+
+    clus_hr_sort = scoring.lmsOfClusHr(users, user_topic, doc_topic, points, t)
+
+    scoring.prefixDFS(clus_hr_sort[:35], frozenset())
+    print 'TopK'
+    print scoring.topK
+
+    drawGmap.drawTopK(scoring.topK[:6], cluster_centers, cluster_centers2)
 
     print '============End Time============'
     print time.strftime('%Y-%m-%d %A %X',time.localtime(time.time())) 

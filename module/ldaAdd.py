@@ -116,3 +116,39 @@ def runLda(lda_m, dic):
     doc_topic = model.doc_topic_
 
     return [topic_word, doc_topic]
+
+
+def userTopic(USER_FILE, points, doc_topic):
+
+    uall = open(USER_FILE,'r')
+    ucount = 0
+    user_topic = []
+    users = []
+    t = 0
+    for line in uall.readlines():
+        ucount += 1
+        ls = line.split()
+        if len(ls)>=1 and ls[0]!='':
+            users.append(ls[0])
+            
+            ufile = ls[0]+'.txt'
+            u = open('data\\users\\'+ufile,'r')
+            photoid = []
+            for line2 in u.readlines():
+                ls2 = line2.split(',')
+                if len(ls2)>=1 and ls2[0]!='':
+                    photoid.append(ls2[0])
+                    
+            n = len(photoid)
+            t += n
+            person_vec = np.zeros(topicNum, dtype=float)#topic amount
+            for i, val in enumerate(points):
+                #print val[0]
+                #print photo
+                if str(val[0]) in photoid:
+                    person_vec += doc_topic[ points[i][-1] ] / float(n)
+
+            #print ucount
+            user_topic.append(person_vec)
+
+    return [user_topic, users, t]
