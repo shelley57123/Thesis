@@ -3,7 +3,7 @@ import lda
 import lda.utils
 import plsa
 
-def savePlsa(clus_num, dic, points, LDA_FILE, LDA_ZERO_FILE):
+def savePlsa(clus_num, dic, points, CLUS_WORD_FILE, CLUS_WORD_ZERO_FILE):
 
     lda_m = [[0]*len(dic)]*(clus_num)
     lda_m = np.array(lda_m)
@@ -28,7 +28,7 @@ def savePlsa(clus_num, dic, points, LDA_FILE, LDA_ZERO_FILE):
 
     plsa_m = []
     clus_shift = zero
-    ldac = open(LDA_FILE,'w')
+    ldac = open(CLUS_WORD_FILE,'w')
     for i in range(lda_m.shape[0]):
         s = ''
         n = 0
@@ -48,7 +48,7 @@ def savePlsa(clus_num, dic, points, LDA_FILE, LDA_ZERO_FILE):
             clus_shift[i] = -1
     ldac.close()
 
-    lda_zero = open(LDA_ZERO_FILE,'w')
+    lda_zero = open(CLUS_WORD_ZERO_FILE,'w')
     for i in range(len(clus_shift)):
         if clus_shift[i] == -1:
             lda_zero.write(str(i)+'\n')
@@ -57,20 +57,10 @@ def savePlsa(clus_num, dic, points, LDA_FILE, LDA_ZERO_FILE):
     return plsa_m
 
 
-def readPlsa(LDA_FILE, LDA_ZERO_FILE):
-    lda_m = lda.utils.ldac2dtm(open(LDA_FILE), offset=0)
-
-    zero = np.zeros(lda_m.shape[1]) #row of zeros of len(words)
-    zero_idx = []
-    lda_zero = open(LDA_ZERO_FILE,'r')
-    for line in lda_zero.readlines():
-        ls = line.split()
-        if len(ls)>0:
-            zero_idx.append(int(ls[0]))
-    lda_zero.close()
-
-    for i, idx in enumerate(zero_idx):
-        lda_m = np.insert(lda_m, idx, zero, 0)
+def readPlsa(clus_num, CLUS_WORD_FILE, CLUS_WORD_ZERO_FILE):
+    lda_m = lda.utils.ldac2dtm(open(CLUS_WORD_FILE), offset=0)
+    #fill the non word doc with zero
+    lda_m = fill_non_word_doc(lda_m, CLUS_WORD_ZERO_FILE)
 
     plsa_m = []
     for i in range(lda_m.shape[0]):
@@ -86,15 +76,37 @@ def readPlsa(LDA_FILE, LDA_ZERO_FILE):
     return plsa_m
 
 
+def fill_non_word_doc(matrix, CLUS_WORD_ZERO_FILE):
+    zero = np.zeros(matrix.shape[1]) #row of zeros of len(words)
+    zero_idx = []
+    lda_zero = open(CLUS_WORD_ZERO_FILE,'r')
+    for line in lda_zero.readlines():
+        ls = line.split()
+        if len(ls)>0:
+            zero_idx.append(int(ls[0]))
+    lda_zero.close()
+
+    for i, idx in enumerate(zero_idx):
+        matrix = np.insert(matrix, idx, zero, 0)
+
+    return matrix
+
+
 def runPlsa(plsa_m, dic):
 
     p = plsa.Plsa(plsa_m)
     p.train()
-    
+
     doc_topic = np.array(p.dz)
     topic_word = np.array(p.zw)
+
+    #fill the non word doc with zero
+    doc_topic = fill_non_word_doc(doc_topic, CLUS_WORD_ZERO_FILE)
+
     print doc_topic
     print topic_word
+    print doc_topic.shape
+    print topic_word.shape
 
     n_top_words = 8
     for i, topic_dist in enumerate(topic_word):

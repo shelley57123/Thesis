@@ -27,8 +27,9 @@ import plsaAdd
 FILE = './data/sf rm del excel2.csv'
 DIC_FILE = './data/dic.txt'
 BW_FILE = './data/bandwidth.txt'
-LDA_FILE = './data/ldac.txt'
-LDA_ZERO_FILE = './data/ldac_zero.txt'
+CLUS_WORD_FILE = './data/ldac.txt'
+CLUS_WORD_ZERO_FILE = './data/ldac_zero.txt'
+MIDCLUS_FILE = './data/midclus.txt'
 USER_FILE = './data/user 30.txt'
 
 
@@ -50,26 +51,27 @@ def main():
 
 
     """one layer"""
-    labels, cluster_centers, n_clusters_, ms = msAdd.ms1st(0.006, loc)
+    labels, cluster_centers, n_clusters_, ms = msAdd.ms2nd(BW_FILE, loc)
     print("number of estimated clusters in 1st layer: %d" % n_clusters_)
-    zeros = [0]*len(points)
+    midclus = open(MIDCLUS_FILE,'r')
+    midclus_list = midclus.readline().split()
     #layer label
-    points = np.hstack((points, np.transpose([labels,zeros]) ))
+    points = np.hstack((points, np.transpose([midclus_list, labels]) ))
     #drawGmap.drawLayer(labels, cluster_centers, n_clusters_, loc, 1)
     clus_num = n_clusters_
     
 
-    """run lda"""
-    if not os.path.isfile(LDA_FILE):
-    	plsa_m = plsaAdd.savePlsa(clus_num, dic, points, LDA_FILE, LDA_ZERO_FILE)
+    """run plsa"""
+    if not os.path.isfile(CLUS_WORD_FILE):
+    	plsa_m = plsaAdd.savePlsa(clus_num, dic, points, CLUS_WORD_FILE, CLUS_WORD_ZERO_FILE)
     else:
-    	plsa_m = plsaAdd.readPlsa(LDA_FILE, LDA_ZERO_FILE)
+    	plsa_m = plsaAdd.readPlsa(clus_num, CLUS_WORD_FILE, CLUS_WORD_ZERO_FILE)
 
     topic_word, doc_topic = plsaAdd.runPlsa(plsa_m, dic)
     user_topic, users, t = ldaAdd.userTopic(USER_FILE, points, doc_topic)
 
-    # """trans/clus time, order score"""
-    # scoring.estTransOrder(points, users, cluster_centers)
+    """trans/clus time, order score"""
+    scoring.estTransOrder(points, users, cluster_centers)
 
     # clus_hr_sort = scoring.lmsOfClusHr(users, user_topic, doc_topic, points, t)
 

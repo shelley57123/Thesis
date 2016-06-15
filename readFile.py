@@ -28,6 +28,7 @@ DIC_FILE = './data/dic.txt'
 BW_FILE = './data/bandwidth.txt'
 LDA_FILE = './data/ldac.txt'
 LDA_ZERO_FILE = './data/ldac_zero.txt'
+MIDCLUS_FILE = './data/midclus.txt'
 USER_FILE = './data/user 30.txt'
 
 
@@ -63,9 +64,12 @@ def main():
 
     points[:,-1] = labels2
     labelsNew = ms.predict(cluster_centers2) #landmark's new clus
+    midclus = open(MIDCLUS_FILE,'w')
     for i in range(len(points)):
         #for each point, find it's landmark's new clus
         points[i,-2] = labelsNew[points[i,-1]]
+        midclus.write(str(points[i,-2])+' ')
+    midclus.close()
     #drawGmap.drawLayer(labels2, cluster_centers2, n_clusters_2, loc, 2)
     clus_num = n_clusters_2
 
