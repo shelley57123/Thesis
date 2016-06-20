@@ -20,7 +20,7 @@ sys.path.append('..')
 import ldaAdd
 import meanshiftAdd as msAdd
 import drawGmap
-import scoring
+import scoring as sc
 import plsaAdd
 
 
@@ -75,16 +75,15 @@ else:
     topic_word, doc_topic = plsaAdd.loadPlsa(ZW_FILE, DZ_FILE, clus_num, len(dic))
 
 print doc_topic.shape
-user_topic, users, t = ldaAdd.userTopic(USER_FILE, points, doc_topic)
+user_topic, users, users_pic_num = ldaAdd.userTopic(USER_FILE, points, doc_topic)
 
 """trans/clus time, order score"""
-scoring.estTransOrder(points, users, cluster_centers)
+labels, cluster_centers2, n_clusters_, ms = msAdd.ms1st(0.015, loc)
+sc.estTransOrder(points, users, cluster_centers2)
 
-U = len(users)/2 + 1
-the_user = users[U]
-lm_score_sort = scoring.find_landmark_score(points, points, the_user, users, user_topic, doc_topic, t)
+lm_score_sort = sc.find_landmark_score(points, points, users, user_topic, doc_topic, users_pic_num)
 
-topK_cmp = scoring.cmp_method_generate_route(8, 1, lm_score_sort, points) #K, d, e, lm_score_sort, points
+topK_cmp = sc.cmp_method_generate_route(8, 1, lm_score_sort, points) #K, d, e, lm_score_sort, points
 print 'TopK'
 print topK_cmp
 
