@@ -4,14 +4,18 @@ import numpy as np
 from operator import itemgetter
 from geopy.distance import great_circle
 
-
-numK = 10
+numK = 5
 topK = []
 hashmap = {}
 hour = 8 #time for trip
 T0 = 8 #default starting time
 
+topK_cmp = []
+
+User = 672/2 + 1
+
 startClus = 3
+startLm = 5
 haveStartClus = True
 
 clus_k = 30
@@ -139,14 +143,14 @@ def estTransOrder(points, users, cluster_centers):
     # return [trans_hr, clus_time, clus_order]
 
 
+"""Kullback-Leibler divergence D(P || Q) for discrete distributions
+Parameters
+----------
+p, q : array-like, dtype=float, shape=n
+Discrete probability distributions.
+"""
 def kl(p, q):
-    """Kullback-Leibler divergence D(P || Q) for discrete distributions
 
-    Parameters
-    ----------
-    p, q : array-like, dtype=float, shape=n
-    Discrete probability distributions.
-    """
     p = np.asarray(p, dtype=np.float)
     q = np.asarray(q, dtype=np.float)
 
@@ -186,14 +190,7 @@ def lmsOfClusHr(users, user_topic, doc_topic, points, t):
 
     else:
 
-        U = len(users)/2 + 1
-        the_user = users[U]
-        sim_users = []
-
-        for user_idx, user in enumerate(users):
-            if user != the_user:
-                sim_users.append([user, np.dot(user_topic[U],user_topic[user_idx]) ])
-        sim_sorted = np.array(sorted(sim_users, key=itemgetter(1),reverse=True ))
+        the_user = users[User]
 
         clus_hr_lms = [] #for diff hrs to a clus, recommend diff lms
 
@@ -205,78 +202,7 @@ def lmsOfClusHr(users, user_topic, doc_topic, points, t):
 
             if len(points[the_clus]) > 20:
                 #estimate all scores of lms of this clus
-                landmarks = points[the_clus,-1]
-                landmarks = np.unique(landmarks)
-                for lmId in landmarks:
-                    the_lm = points[:,-1] == lmId
-                    landmark = points[the_lm]
-
-                    if len(landmark) > 20:
-                        #avg time of landmark
-                        dur_hr = []
-                        for user in points[the_lm, 1]:
-                            if user in users:
-                                user_points = points[the_lm,1] == user
-                               
-                                #for all points of the user, sort by time(index 2-7)
-                                tsorted = np.array(sorted((points[the_lm])[user_points], key=itemgetter(2,3,4,5,6,7)))
-                                
-                                #dates of all posts of user
-                                datesToPier = np.vstack({tuple(row) for row in tsorted[:,2:5]})#remove duplicate date
-                                for date in datesToPier:
-                                    
-                                    #locations of the user visited in this date(boolean list)
-                                    same_date = tsorted[:,2:5] == date
-                                    sd = []
-                                    for d in same_date:
-                                        sd.append(d.all())
-                                    same_date = np.array(sd, dtype=bool)
-                                    
-                                    #add time difference of this day
-                                    hr2 = (tsorted[same_date])[-1][5] + (tsorted[same_date])[-1][6]/60.0 #last time of post today
-                                    hr1 = (tsorted[same_date])[0][5] + (tsorted[same_date])[0][6]/60.0 #first time of post today
-                                    dur_hr.append(hr2 - hr1)
-                        
-                        if len(dur_hr)>0:
-                            lm_time = sum(dur_hr)/float(len(dur_hr))
-                            if round( (lm_time*100%100) / 50.0) == 0:
-                                lm_time = round(lm_time)
-                            elif round( (lm_time*100%100) / 50.0) == 1:
-                                lm_time = round(lm_time) + 0.5
-                            elif round( (lm_time*100%100) / 50.0) == 2:
-                                lm_time = round(lm_time) + 1
-                            print lm_time
-                    
-                        # 1. popularity
-                        pop = len(landmark)/float(t) 
-                        print pop
-
-                        # 2. rate of similar people visiting lm
-                        n = 100
-                        c = 0
-                        landmark_users = points[the_lm, 1]
-                        
-                        topN_sim_users = sim_sorted[:n]
-                        for user in topN_sim_users:
-                            if user[0] in landmark_users:
-                                c += 1
-                        sim = c/float(n)
-                        print sim
-
-                        # 3. user-landmark score
-                        ulm = np.dot(user_topic[U], doc_topic[lmId]) #similarity between user and landmark
-                        print ulm
-
-                        # 4. total
-                        #score = (pop * sim * ulm) ** (1/float(3))
-                        score = popImp*pop + simImp*sim + ulmImp*ulm
-                        print 'score: '+str(score)+'\n'
-
-                        lm_score.append([lmId, lm_time, score])
-                        
-                lm_score_sort = np.array(sorted(lm_score, key=itemgetter(2,1) ))
-                del lm_score
-
+                lm_score_sort = find_landmark_score(points, points[the_clus], the_user, users, user_topic, doc_topic, t)
 
                 #find hrs of this clus
                 dur_hr = []
@@ -310,13 +236,6 @@ def lmsOfClusHr(users, user_topic, doc_topic, points, t):
                 vec = vec/sum(vec)
 
                 std = np.std(dur_hr)
-
-                # plt.figure(1)
-                # plt.clf()
-                # plt.hist(dur_hr)
-                # plt.xlabel("Hours")
-                # plt.ylabel("Frequency")
-                # plt.show()
                 
                 for hr, p in enumerate(vec):
                     if p > 0.06 and hr > 0:
@@ -351,10 +270,10 @@ def lmsOfClusHr(users, user_topic, doc_topic, points, t):
                                 lm_choose.append([lmId, lm_time, lm_score])
                                 time_left -= lm_time
                                 
-                        #under this hr, geometric mean of scores of chosen lms
+                        #under this hr, sum of scores of chosen lms
                         if len(lm_choose) > 0:
                             lm_choose = np.array(lm_choose)
-                            score = scipy.stats.mstats.gmean(lm_choose[:,2])
+                            score = sum(lm_choose[:,2])
                             print 'score'+str(score)
                         
                             clus_hr_lms.append([lid, hr, score*kls, lm_choose])
@@ -362,7 +281,7 @@ def lmsOfClusHr(users, user_topic, doc_topic, points, t):
 
         clus_hr_sort = sorted(clus_hr_lms, key=itemgetter(2), reverse = True )
 
-        #clus, hr, score, lms
+        #write clus_hr file: list of [clus, hr, score, lms]
         clus_hr_file = open(fileName,'w')
         clus_hr_file.write(str(len(clus_hr_sort))+'\n')
 
@@ -375,6 +294,90 @@ def lmsOfClusHr(users, user_topic, doc_topic, points, t):
         clus_hr_file.close()
 
     return clus_hr_sort
+
+
+def find_landmark_score(points, somePoints, the_user, users, user_topic, doc_topic, t):
+
+    sim_users = []
+    for user_idx, user in enumerate(users):
+        if user != the_user:
+            sim_users.append([user, np.dot(user_topic[User],user_topic[user_idx]) ])
+    sim_sorted = np.array(sorted(sim_users, key=itemgetter(1),reverse=True ))
+
+    lm_score = []
+    #estimate all scores of lms of this clus
+    landmarks = somePoints[:,-1]
+    landmarks = np.unique(landmarks)
+    for lmId in landmarks:
+        the_lm = points[:,-1] == lmId
+        landmark = points[the_lm]
+
+        if len(landmark) > 20:
+            #avg time of landmark
+
+            dur_hr = []
+            for user in points[the_lm, 1]:
+                if user in users:
+                    user_points = points[the_lm,1] == user
+                   
+                    #for all points of the user, sort by time(index 2-7)
+                    tsorted = np.array(sorted((points[the_lm])[user_points], key=itemgetter(2,3,4,5,6,7)))
+                    
+                    #dates of all posts of user
+                    datesToPier = np.vstack({tuple(row) for row in tsorted[:,2:5]})#remove duplicate date
+                    for date in datesToPier:
+                        
+                        #locations of the user visited in this date(boolean list)
+                        same_date = tsorted[:,2:5] == date
+                        sd = []
+                        for d in same_date:
+                            sd.append(d.all())
+                        same_date = np.array(sd, dtype=bool)
+                        
+                        #add time difference of this day
+                        hr2 = (tsorted[same_date])[-1][5] + (tsorted[same_date])[-1][6]/60.0 #last time of post today
+                        hr1 = (tsorted[same_date])[0][5] + (tsorted[same_date])[0][6]/60.0 #first time of post today
+                        dur_hr.append(hr2 - hr1)
+            
+            if len(dur_hr)>0:
+                lm_time = sum(dur_hr)/float(len(dur_hr))
+                if round( (lm_time*100%100) / 50.0) == 0:
+                    lm_time = round(lm_time)
+                elif round( (lm_time*100%100) / 50.0) == 1:
+                    lm_time = round(lm_time) + 0.5
+                elif round( (lm_time*100%100) / 50.0) == 2:
+                    lm_time = round(lm_time) + 1
+                print lm_time
+        
+            # 1. popularity
+            pop = len(landmark)/float(t) 
+            print pop
+
+            # 2. rate of similar people visiting lm
+            n = 100
+            c = 0
+            landmark_users = points[the_lm, 1]
+            
+            topN_sim_users = sim_sorted[:n]
+            for user in topN_sim_users:
+                if user[0] in landmark_users:
+                    c += 1
+            sim = c/float(n)
+            print sim
+
+            # 3. user-landmark score
+            ulm = np.dot(user_topic[User], doc_topic[lmId]) #similarity between user and landmark
+            print ulm
+
+            # 4. total
+            #score = (pop * sim * ulm) ** (1/float(3))
+            score = popImp*pop + simImp*sim + ulmImp*ulm
+            print 'score: '+str(score)+'\n'
+
+            lm_score.append([lmId, lm_time, score])
+            
+    lm_score_sort = np.array(sorted(lm_score, key=itemgetter(2,1) ))
+    return lm_score_sort
 
 
 """for sorted clus_hr list, build a prefixDFS tree
@@ -543,4 +546,71 @@ def keepRoute(score, route, time, leastScore, clus_hr_sort):
         return True
     else:
         return False
+
+
+
+"""input:lm_score_sort list of[lmId, lm_time, score]"""
+def cmp_method_generate_route(d, e, lm_score_sort, points):
+    global topK_cmp
+    k = 0
+    Q = []
+    # score = map_col(lm_score_sort, 0, 2, startLm)
+    Q.append([ [startLm], 0, 0 ])
+    while(k<numK):
+        s = Q[0][0]
+        # ds = route_time(s, points, lm_score_sort)
+        ds = Q[0][1]
+        scoreS = Q[0][2]
+        Q.pop(0)
+        if d-e <= ds and ds <= d+e :
+            print s, ds, scoreS
+            topK_cmp.append([s, ds, scoreS])
+            k += 1
+        if ds < d+e :
+            for lm in lm_score_sort[:,0]:
+                thisClus = map_col(points, -1, -2, lm)
+                preClus = map_col(points, -1, -2, s[-1])
+                if lm not in s and thisClus < clus_k and preClus < clus_k :
+                    
+                    newRoute = list(s)
+                    newRoute.append(lm)
+                    #find real preClus
+                    if preClus == thisClus:
+                        for i in range(len(s)-1):
+                            if map_col(points, -1, -2, s[-2-i]) != thisClus :
+                                preClus = map_col(points, -1, -2, s[-2-i])
+                                break
+
+                    if preClus != thisClus:
+                        ktime = round( T0 + ds + trans_hr[preClus][thisClus] + map_col(lm_score_sort, 0, 1, lm)/2 )
+                        newTime = ds + trans_hr[preClus][thisClus] + map_col(lm_score_sort, 0, 1, lm)
+                        newScore = scoreS + map_col(lm_score_sort, 0, 2, lm)*\
+                                    clus_order[preClus][thisClus]* clus_time[thisClus][ktime%24]
+                    else:
+                        ktime = round( T0 + ds + map_col(lm_score_sort, 0, 1, lm)/2 )
+                        newTime = ds + map_col(lm_score_sort, 0, 1, lm)
+                        newScore = scoreS + map_col(lm_score_sort, 0, 2, lm)* clus_time[thisClus][ktime%24]
+
+                    if newTime <= d+e :
+                        Q.append([newRoute, newTime, newScore])
+                        Q = sorted(Q, key=itemgetter(2),reverse=True )
+    return topK_cmp
+                
+
+# def route_time(route, points, lm_score_sort):
+#     t = 0
+#     for i, lm in enumerate(route):
+#         #only transtime and order score
+#         if i > 0:
+#             thisClus = map_col(points, -1, -2, lm)
+#             preClus = map_col(points, -1, -2, route[i-1])
+#             t += trans_hr[preClus][thisClus] + map_col(lm_score_sort, 0, 1, lm)
+#     return t
+
+
+def map_col(matrix, search_col, return_col, val):
+    for row in matrix:
+        if row[search_col] == val:
+            return row[return_col]
+    # return matrix[ matrix[:,search_col].index(val), return_col ] #only for np array
 

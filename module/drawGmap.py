@@ -59,3 +59,33 @@ def findClusLms(inClus, inHr):
     for clus, hr, score, lms in sc.clus_hr_sort:
         if clus == inClus and hr == inHr:
             return lms
+
+
+def drawTopK_cmp(topKPath, cluster_centers):
+    global colors
+    mymap = pygmaps.maps(37.78713, -122.42392, 13)
+    i = 0
+    colorNum = 6
+    for route, timeLen, score in topKPath:
+        path = []
+
+        mymap.addpoint(cluster_centers[sc.startLm][1], cluster_centers[sc.startLm][0], colors[8], title = str(sc.startLm)+'_clus ')
+        path.append((cluster_centers[sc.startLm][1], cluster_centers[sc.startLm][0]))
+
+        for lmId in route:
+            lon, lat = findLmLoc(lmId, cluster_centers)
+            if len(path) == 0:
+                mymap.addpoint(lat, lon, colors[8], title = str(lmId)+'_lm '+str(timeLen)+'hr s:'+str(score))
+            else:
+                mymap.addpoint(lat, lon, colors[i%colorNum], title = str(lmId)+'_lm ')
+            path.append((lat, lon))
+
+        mymap.addpoint(lat, lon, colors[7], title = str(lmId)+'_lm ')
+        mymap.addpath(path, colors[i%colorNum])
+        i += 1
+
+    drawName = '_'.join(['topK_cmp', str(sc.popImp), str(sc.simImp), str(sc.ulmImp), 'StartLm'+str(sc.startLm) ]) + '.html'
+    
+    mymap.draw(drawName)
+    url = drawName
+    webbrowser.open_new_tab(url)

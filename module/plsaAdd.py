@@ -3,6 +3,8 @@ import lda
 import lda.utils
 import plsa
 
+topicNum = 20
+
 def savePlsa(clus_num, dic, points, CLUS_WORD_FILE, CLUS_WORD_ZERO_FILE):
 
     lda_m = [[0]*len(dic)]*(clus_num)
@@ -92,9 +94,9 @@ def fill_non_word_doc(matrix, CLUS_WORD_ZERO_FILE):
     return matrix
 
 
-def runPlsa(plsa_m, dic):
+def runPlsa(plsa_m, dic, CLUS_WORD_ZERO_FILE, ZW_FILE, DZ_FILE):
 
-    p = plsa.Plsa(plsa_m)
+    p = plsa.Plsa(plsa_m, topics=topicNum)
     p.train()
 
     doc_topic = np.array(p.dz)
@@ -107,12 +109,19 @@ def runPlsa(plsa_m, dic):
     print topic_word
     print doc_topic.shape
     print topic_word.shape
+    np.savetxt(DZ_FILE, doc_topic)
+    np.savetxt(ZW_FILE, topic_word)
 
     n_top_words = 8
     for i, topic_dist in enumerate(topic_word):
         topic_words = np.array(dic)[np.argsort(topic_dist)][:-(n_top_words+1):-1]
         print('Topic {}: {}'.format(i, ' '.join(topic_words)))
 
+    return [topic_word, doc_topic]
+
+def loadPlsa(ZW_FILE, DZ_FILE, doc_num, word_num):
+    doc_topic = np.loadtxt(DZ_FILE)
+    topic_word = np.loadtxt(ZW_FILE)
     return [topic_word, doc_topic]
 
 
