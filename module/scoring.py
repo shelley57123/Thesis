@@ -623,8 +623,10 @@ def keepRoute(score, route, time, leastScore, clus_hr_sort):
 
 
 """input:lm_score_sort list of[lmId, lm_time, score]"""
-def cmp_method_generate_route(d, e, lm_score_sort, points):
+def cmp_method_generate_route(e, lm_score_sort, points):
     global topK_cmp
+    d = hour
+    
     k = 0
     Q = []
     # score = map_col(lm_score_sort, 0, 2, startLm)
