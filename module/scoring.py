@@ -165,10 +165,10 @@ def estTransOrder(points, users, cluster_centers):
 
 
 """find landmarks to recommend of different clus-hr"""
-def lmsOfClusHr(users, user_topic, doc_topic, points, t):
+def lmsOfClusHr(users, user_topic, doc_topic, points):
 
     global clus_hr_sort
-    fileName = ' '.join(['data\\clus_hr_sort', str(popImp), str(simImp), str(ulmImp)])+'.txt'
+    fileName = ' '.join(['data\\clus_hr_sort\\clus_hr_sort', str(popImp), str(simImp), str(ulmImp)])+'.txt'
     distFileName = 'data\\clus_hrs_dist.txt'
 
     if os.path.isfile(fileName) and os.path.isfile(distFileName):
@@ -211,7 +211,7 @@ def lmsOfClusHr(users, user_topic, doc_topic, points, t):
 
             if len(points[the_clus]) > 20:
                 #estimate all scores of lms of this clus
-                lm_score_sort = find_landmark_score(points, points[the_clus], users, user_topic, doc_topic, t, False)
+                lm_score_sort = find_landmark_score(points, points[the_clus], users, user_topic, doc_topic, False)
 
                 #find hrs of this clus
                 dur_hr = []
@@ -301,8 +301,8 @@ def lmsOfClusHr(users, user_topic, doc_topic, points, t):
 
 
 """output: list of [lmId, lm_time, score]"""
-def find_landmark_score(points, somePoints, users, user_topic, doc_topic, users_pic_num, load_by_file):
-    fileName = 'data\\lm_score_sort.txt'
+def find_landmark_score(points, somePoints, users, user_topic, doc_topic, load_by_file):
+    fileName = ' '.join(['data\\lm_score_sort', str(popImp), str(simImp), str(ulmImp)])+'.txt'
 
     if load_by_file and os.path.isfile(fileName):
         lm_score_sort = []
@@ -326,6 +326,14 @@ def find_landmark_score(points, somePoints, users, user_topic, doc_topic, users_
         #estimate all scores of lms of this clus
         landmarks = somePoints[:,-1]
         landmarks = np.unique(landmarks)
+
+        max_lm = 0
+        for lmId in landmarks:
+            the_lm = points[:,-1] == lmId
+            landmark = points[the_lm]
+            if len(landmark) > 20 and len(landmark) > max_lm:
+                max_lm = len(landmark)
+
         for lmId in landmarks:
             the_lm = points[:,-1] == lmId
             landmark = points[the_lm]
@@ -368,7 +376,7 @@ def find_landmark_score(points, somePoints, users, user_topic, doc_topic, users_
                     print lm_time
             
                 # 1. popularity
-                pop = len(landmark)/float(users_pic_num) 
+                pop = len(landmark)/float(max_lm) 
                 print pop
 
                 # 2. rate of similar people visiting lm
@@ -626,7 +634,7 @@ def keepRoute(score, route, time, leastScore, clus_hr_sort):
 def cmp_method_generate_route(e, lm_score_sort, points):
     global topK_cmp
     d = hour
-    
+
     k = 0
     Q = []
     # score = map_col(lm_score_sort, 0, 2, startLm)

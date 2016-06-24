@@ -21,16 +21,20 @@ import ldaAdd
 import meanshiftAdd as msAdd
 import drawGmap
 import scoring as sc
+import plsaAdd
 
 
 FILE = './data/sf rm del excel2.csv'
 DIC_FILE = './data/dic.txt'
 BW_FILE = './data/bandwidth.txt'
-LDA_FILE = './data/ldac.txt'
-LDA_ZERO_FILE = './data/ldac_zero.txt'
-MIDCLUS_FILE = './data/midclus.txt'
+CLUS_WORD_FILE = './data/ldac.txt'
+CLUS_WORD_ZERO_FILE = './data/ldac_zero.txt'
 USER_FILE = './data/user 30.txt'
-
+ZW_FILE = './data/plsaZW.txt'
+DZ_FILE = './data/plsaDZ.txt'
+AVG_K_FILE = './data/avg_k.txt'
+AVG_HR_FILE = './data/avg_hr.txt'
+PARA_FILE = './data/para.txt'
 
 # def main():
 print '===========Start Time==========='
@@ -48,7 +52,6 @@ if not os.path.isfile(DIC_FILE):
 else:
     dic = ldaAdd.readDic(DIC_FILE)
 
-
 """1st layer"""
 labels, cluster_centers, n_clusters_, ms = msAdd.ms1st(0.015, loc)
 print("number of estimated clusters in 1st layer: %d" % n_clusters_)
@@ -64,34 +67,58 @@ print("number of estimated clusters in 2nd layer: %d" % n_clusters_2)
 
 points[:,-1] = labels2
 labelsNew = ms.predict(cluster_centers2) #landmark's new clus
-midclus = open(MIDCLUS_FILE,'w')
 for i in range(len(points)):
     #for each point, find it's landmark's new clus
     points[i,-2] = labelsNew[points[i,-1]]
-    midclus.write(str(points[i,-2])+' ')
-midclus.close()
 #drawGmap.drawLayer(labels2, cluster_centers2, n_clusters_2, loc, 2)
 clus_num = n_clusters_2
 
-"""run lda"""
-if not os.path.isfile(LDA_FILE):
-	lda_m = ldaAdd.saveLda(clus_num, dic, points, LDA_FILE, LDA_ZERO_FILE)
-else:
-	lda_m = ldaAdd.readLda(LDA_FILE, LDA_ZERO_FILE)
 
+"""load matrix"""
+if not os.path.isfile(CLUS_WORD_FILE):
+	lda_m = ldaAdd.saveLda(clus_num, dic, points, CLUS_WORD_FILE, CLUS_WORD_ZERO_FILE)
+	plsa_m = plsaAdd.savePlsa(clus_num, dic, points, CLUS_WORD_FILE, CLUS_WORD_ZERO_FILE)
+else:
+	lda_m = ldaAdd.readLda(CLUS_WORD_FILE, CLUS_WORD_ZERO_FILE)
+	plsa_m = plsaAdd.readPlsa(clus_num, CLUS_WORD_FILE, CLUS_WORD_ZERO_FILE)
+
+"""run lda/plsa"""
 topic_word, doc_topic = ldaAdd.runLda(lda_m, dic)
-user_topic, users, t = ldaAdd.userTopic(USER_FILE, points, doc_topic)
+user_topic, users, users_pic_num = ldaAdd.userTopic(USER_FILE, points, doc_topic)
+
+if not (os.path.isfile(ZW_FILE) and os.path.isfile(DZ_FILE)):
+    plsa_topic_word, plsa_doc_topic = plsaAdd.runPlsa(plsa_m, dic, CLUS_WORD_ZERO_FILE, ZW_FILE, DZ_FILE)
+else:
+    plsa_topic_word, plsa_doc_topic = plsaAdd.loadPlsa(ZW_FILE, DZ_FILE, clus_num, len(dic))
+plsa_user_topic, users, users_pic_num = ldaAdd.userTopic(USER_FILE, points, plsa_doc_topic)
+
 
 """trans/clus time, order score"""
 sc.estTransOrder(points, users, cluster_centers)
 
-clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, points)
 
-sc.prefixDFS(clus_hr_sort, frozenset())
-print 'TopK'
-print sc.topK
+"""adjust weight beteen 3 parameter"""
+for i in range(1,10):
+	for j in range(1,11-i):
+		para = open(PARA_FILE,'a')
 
-drawGmap.drawTopK(sc.topK, cluster_centers, cluster_centers2)
+		sc.popImp = i*0.1
+		sc.simImp = j*0.1
+		sc.ulmImp = 1.0 - sc.popImp - sc.simImp
+		print sc.popImp, sc.simImp, sc.ulmImp
+
+		clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, points)
+
+		sc.topK = []
+		sc.clus_hr_sort = []
+		"""prefixDFS"""
+		sc.prefixDFS(clus_hr_sort, frozenset())
+		print 'TopK'
+		print sc.topK
+
+		para.write(str(sc.popImp)+' '+str(sc.simImp)+' '+str(sc.ulmImp)+' '+str(sc.topK_avg_score(sc.topK, 0))+'\n' )
+		para.close()
+
 
 print '============End Time============'
 print time.strftime('%Y-%m-%d %A %X',time.localtime(time.time())) 
