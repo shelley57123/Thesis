@@ -105,6 +105,8 @@ for i in range(1,10):
 		sc.popImp = i*0.1
 		sc.simImp = j*0.1
 		sc.ulmImp = 1.0 - sc.popImp - sc.simImp
+		if sc.ulmImp < 0.05:
+			sc.ulmImp = 0.0
 		print sc.popImp, sc.simImp, sc.ulmImp
 
 		clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, points)

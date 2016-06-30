@@ -327,14 +327,12 @@ def find_landmark_score(points, somePoints, users, user_topic, doc_topic, load_b
         landmarks = somePoints[:,-1]
         landmarks = np.unique(landmarks)
 
-        max_lm = 0
-        for lmId in landmarks:
-            the_lm = points[:,-1] == lmId
-            landmark = points[the_lm]
-            if len(landmark) > 20 and len(landmark) > max_lm:
-                max_lm = len(landmark)
+        list_lm = [0]*len(landmarks)
+        list_sim = [0]*len(landmarks)
+        list_ulm = [0]*len(landmarks)
+        list_time = [0]*len(landmarks)
 
-        for lmId in landmarks:
+        for i, lmId in enumerate(landmarks):
             the_lm = points[:,-1] == lmId
             landmark = points[the_lm]
 
@@ -374,10 +372,12 @@ def find_landmark_score(points, somePoints, users, user_topic, doc_topic, load_b
                     elif round( (lm_time*100%100) / 50.0) == 2:
                         lm_time = round(lm_time) + 1
                     print lm_time
+                list_time[i] = lm_time
             
                 # 1. popularity
-                pop = len(landmark)/float(max_lm) 
+                pop = len(landmark) 
                 print pop
+                list_lm[i] = pop
 
                 # 2. rate of similar people visiting lm
                 n = 100
@@ -388,21 +388,44 @@ def find_landmark_score(points, somePoints, users, user_topic, doc_topic, load_b
                 for user in topN_sim_users:
                     if user[0] in landmark_users:
                         c += 1
-                sim = c/float(n)
+                sim = c
                 print sim
+                list_sim[i] = sim
 
                 # 3. user-landmark score
                 ulm = np.dot(user_topic[User], doc_topic[lmId]) #similarity between user and landmark
                 print ulm
+                list_ulm[i] = ulm
+
+        for i, lmId in enumerate(landmarks):
+            the_lm = points[:,-1] == lmId
+            landmark = points[the_lm]
+
+            if len(landmark) > 20:
+
+                list_lm = list_lm / np.max(list_lm)
+                list_sim = list_sim / np.max(list_sim)
+                if (np.max(list_ulm)-np.min(list_ulm))>0:
+                    list_ulm = (list_ulm-np.min(list_ulm)) / (np.max(list_ulm)-np.min(list_ulm))
+                elif np.max(list_ulm)>0:
+                    list_ulm = list_ulm / np.max(list_ulm)
+
+                print 'max_min pop'
+                print np.max(list_lm), np.min(list_lm)
+                print 'max_min sim'
+                print np.max(list_sim), np.min(list_sim)
+                print 'max_min ulm'
+                print np.max(list_ulm), np.min(list_ulm)
 
                 # 4. total
                 #score = (pop * sim * ulm) ** (1/float(3))
-                score = popImp*pop + simImp*sim + ulmImp*ulm
+                score = popImp*list_lm[i] + simImp*list_sim[i] + ulmImp*list_ulm[i]
                 print 'score: '+str(score)+'\n'
 
-                lm_score.append([lmId, lm_time, score])
+                lm_score.append([lmId, list_time[i], score])
                 
         lm_score_sort = np.array(sorted(lm_score, key=itemgetter(2,1) ))
+
 
         if load_by_file:
             f = open(fileName,'w')
