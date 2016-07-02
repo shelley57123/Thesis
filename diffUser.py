@@ -22,6 +22,7 @@ import meanshiftAdd as msAdd
 import drawGmap
 import scoring as sc
 import plsaAdd
+import userScore as us
 
 
 FILE = './data/sf rm del excel2.csv'
@@ -34,7 +35,6 @@ ZW_FILE = './data/plsaZW.txt'
 DZ_FILE = './data/plsaDZ.txt'
 AVG_K_FILE = './data/avg_k.txt'
 AVG_HR_FILE = './data/avg_hr.txt'
-PARA_FILE = './data/para.txt'
 
 # def main():
 print '===========Start Time==========='
@@ -77,98 +77,42 @@ clus_num = n_clusters_2
 """load matrix"""
 if not os.path.isfile(CLUS_WORD_FILE):
 	lda_m = ldaAdd.saveLda(clus_num, dic, points, CLUS_WORD_FILE, CLUS_WORD_ZERO_FILE)
-	plsa_m = plsaAdd.savePlsa(clus_num, dic, points, CLUS_WORD_FILE, CLUS_WORD_ZERO_FILE)
+	# plsa_m = plsaAdd.savePlsa(clus_num, dic, points, CLUS_WORD_FILE, CLUS_WORD_ZERO_FILE)
 else:
 	lda_m = ldaAdd.readLda(CLUS_WORD_FILE, CLUS_WORD_ZERO_FILE)
-	plsa_m = plsaAdd.readPlsa(clus_num, CLUS_WORD_FILE, CLUS_WORD_ZERO_FILE)
+	# plsa_m = plsaAdd.readPlsa(clus_num, CLUS_WORD_FILE, CLUS_WORD_ZERO_FILE)
 
 """run lda/plsa"""
 topic_word, doc_topic = ldaAdd.runLda(lda_m, dic)
 user_topic, users, users_pic_num = ldaAdd.userTopic(USER_FILE, points, doc_topic)
 
-if not (os.path.isfile(ZW_FILE) and os.path.isfile(DZ_FILE)):
-    plsa_topic_word, plsa_doc_topic = plsaAdd.runPlsa(plsa_m, dic, CLUS_WORD_ZERO_FILE, ZW_FILE, DZ_FILE)
-else:
-    plsa_topic_word, plsa_doc_topic = plsaAdd.loadPlsa(ZW_FILE, DZ_FILE, clus_num, len(dic))
-plsa_user_topic, users, users_pic_num = ldaAdd.userTopic(USER_FILE, points, plsa_doc_topic)
+clus_topic = us.userClus(user_topic, topic_word, dic)
+
+# if not (os.path.isfile(ZW_FILE) and os.path.isfile(DZ_FILE)):
+#     plsa_topic_word, plsa_doc_topic = plsaAdd.runPlsa(plsa_m, dic, CLUS_WORD_ZERO_FILE, ZW_FILE, DZ_FILE)
+# else:
+#     plsa_topic_word, plsa_doc_topic = plsaAdd.loadPlsa(ZW_FILE, DZ_FILE, clus_num, len(dic))
+# plsa_user_topic, users, users_pic_num = us.userTopic(USER_FILE, points, plsa_doc_topic)
 
 
 """trans/clus time, order score"""
 sc.estTransOrder(points, users, cluster_centers)
 
-# clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, points, [])
-# lm_score_sort = sc.find_landmark_score(points, points, users, plsa_user_topic, plsa_doc_topic, True, [])
 
-# """prefixDFS"""
-# sc.prefixDFS(clus_hr_sort, frozenset())
-# print 'TopK'
-# print sc.topK
+"""find top k path for each clus"""
+for clus in clus_topic:
+	sc.topK = []
+	sc.clus_hr_sort = []
 
-# """cmp Alg"""
-# topK_cmp = sc.cmp_method_generate_route(8, 1, lm_score_sort, points) #d, e, lm_score_sort, points
-# print 'TopK_cmp'
-# print topK_cmp
+	clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, points, clus)
+	"""prefixDFS"""
+	sc.prefixDFS(clus_hr_sort, frozenset())
+	print 'TopK'
+	print sc.topK
 
+	print str(sc.popImp)+' '+str(sc.simImp)+' '+str(sc.ulmImp)+' '+str(sc.topK_avg_score(sc.topK, 0))+'\n' 
+	drawGmap.drawTopK(sc.topK, cluster_centers, cluster_centers2)
 
-"""adjust weight between 3 parameter"""
-for i in range(1,10):
-	for j in range(1,10):
-		para = open(PARA_FILE,'a')
-
-		sc.popImp = i*0.1
-		sc.simImp = j*0.1
-		sc.ulmImp = 1 - sc.popImp - sc.simImp
-		print sc.popImp, sc.simImp, sc.ulmImp
-
-		clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, points, [])
-
-		"""prefixDFS"""
-		sc.prefixDFS(clus_hr_sort, frozenset())
-		print 'TopK'
-		print sc.topK
-
-		para.write(str(sc.popImp)+' '+str(sc.simImp)+' '+str(sc.ulmImp)+' '+str(sc.topK_avg_score(sc.topK, 0))+'\n' )
-		para.close()
-
-# drawGmap.drawTopK(sc.topK, cluster_centers, cluster_centers2)
-# drawGmap.drawTopK_cmp(topK_cmp, cluster_centers2)
-
-
-"""Average score with different K"""
-# avg_f = open(AVG_K_FILE,'w')
-# for i in range(sc.numK):
-#     avg_f.write(str(i+1)+' '+str(sc.topK_avg_score(sc.topK[:i+1], 0))+'\n' )
-# avg_f.write('\n')
-# for i in range(sc.numK):
-#     avg_f.write(str(i+1)+' '+str(sc.topK_avg_score(topK_cmp[:i+1], 1))+'\n' )
-# avg_f.close()
-
-
-"""Average score with different hour"""
-# for i in range(3,25):
-
-# 	avg_f = open(AVG_HR_FILE,'a')
-
-# 	sc.hour = i
-# 	"""prefixDFS"""
-# 	sc.topK = []
-# 	if i <= 9:
-# 		sc.prefixDFS(clus_hr_sort, frozenset())
-# 	else:
-# 		sc.prefixDFS(clus_hr_sort[:35], frozenset())
-# 	print 'TopK'
-# 	print sc.topK
-# 	avg_f.write(str(i)+' '+str(sc.topK_avg_score(sc.topK, 0))+' ' )
-
-# 	sc.hour = i
-# 	"""cmp Alg"""
-# 	sc.topK_cmp = []
-# 	topK_cmp = sc.cmp_method_generate_route(1, lm_score_sort, points) #d, e, lm_score_sort, points
-# 	print 'TopK_cmp'
-# 	print topK_cmp
-# 	avg_f.write(str(sc.topK_avg_score(topK_cmp, 1))+'\n' )
-
-# 	avg_f.close()
 
 print '============End Time============'
 print time.strftime('%Y-%m-%d %A %X',time.localtime(time.time())) 

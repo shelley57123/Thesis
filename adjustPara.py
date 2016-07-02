@@ -77,29 +77,21 @@ clus_num = n_clusters_2
 """load matrix"""
 if not os.path.isfile(CLUS_WORD_FILE):
 	lda_m = ldaAdd.saveLda(clus_num, dic, points, CLUS_WORD_FILE, CLUS_WORD_ZERO_FILE)
-	plsa_m = plsaAdd.savePlsa(clus_num, dic, points, CLUS_WORD_FILE, CLUS_WORD_ZERO_FILE)
 else:
 	lda_m = ldaAdd.readLda(CLUS_WORD_FILE, CLUS_WORD_ZERO_FILE)
-	plsa_m = plsaAdd.readPlsa(clus_num, CLUS_WORD_FILE, CLUS_WORD_ZERO_FILE)
 
-"""run lda/plsa"""
+"""run lda"""
 topic_word, doc_topic = ldaAdd.runLda(lda_m, dic)
 user_topic, users, users_pic_num = ldaAdd.userTopic(USER_FILE, points, doc_topic)
-
-if not (os.path.isfile(ZW_FILE) and os.path.isfile(DZ_FILE)):
-    plsa_topic_word, plsa_doc_topic = plsaAdd.runPlsa(plsa_m, dic, CLUS_WORD_ZERO_FILE, ZW_FILE, DZ_FILE)
-else:
-    plsa_topic_word, plsa_doc_topic = plsaAdd.loadPlsa(ZW_FILE, DZ_FILE, clus_num, len(dic))
-plsa_user_topic, users, users_pic_num = ldaAdd.userTopic(USER_FILE, points, plsa_doc_topic)
-
 
 """trans/clus time, order score"""
 sc.estTransOrder(points, users, cluster_centers)
 
-
 """adjust weight beteen 3 parameter"""
-for i in range(1,10):
-	for j in range(1,11-i):
+# for i in range(1,10):
+# 	for j in range(1,11-i):
+for i in range(1,2):
+	for j in range(1,2):
 		para = open(PARA_FILE,'a')
 
 		sc.popImp = i*0.1
@@ -109,7 +101,7 @@ for i in range(1,10):
 			sc.ulmImp = 0.0
 		print sc.popImp, sc.simImp, sc.ulmImp
 
-		clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, points)
+		clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, points, [])
 
 		sc.topK = []
 		sc.clus_hr_sort = []

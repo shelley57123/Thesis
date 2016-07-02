@@ -85,7 +85,7 @@ user_topic, users, t = ldaAdd.userTopic(USER_FILE, points, doc_topic)
 """trans/clus time, order score"""
 sc.estTransOrder(points, users, cluster_centers)
 
-clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, points)
+clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, points, [])
 
 sc.prefixDFS(clus_hr_sort, frozenset())
 print 'TopK'

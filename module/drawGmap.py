@@ -1,6 +1,7 @@
 import pygmaps 
 import webbrowser 
 import scoring as sc
+import matplotlib.pyplot as plt
 
 colors = ['#FF0000','#0000FF','#00FF00','#00FFFF','#FFCD00','#FF00FF','#808080','#FFFFFF','#000000']
 
@@ -89,3 +90,13 @@ def drawTopK_cmp(topKPath, cluster_centers):
     mymap.draw(drawName)
     url = drawName
     webbrowser.open_new_tab(url)
+
+
+def plotHist(aList, i):
+
+    plt.figure(i)
+    plt.clf()
+    plt.hist(aList)
+    # plt.xlabel("Hours")
+    # plt.ylabel("Frequency")
+    plt.show()

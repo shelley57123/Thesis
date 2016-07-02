@@ -3,6 +3,7 @@ import os
 import numpy as np
 from operator import itemgetter
 from geopy.distance import great_circle
+import drawGmap
 
 numK = 20
 topK = []
@@ -165,13 +166,14 @@ def estTransOrder(points, users, cluster_centers):
 
 
 """find landmarks to recommend of different clus-hr"""
-def lmsOfClusHr(users, user_topic, doc_topic, points):
+def lmsOfClusHr(users, user_topic, doc_topic, points, clus_topic):
 
     global clus_hr_sort
     fileName = ' '.join(['data\\clus_hr_sort\\clus_hr_sort', str(popImp), str(simImp), str(ulmImp)])+'.txt'
     distFileName = 'data\\clus_hrs_dist.txt'
 
-    if os.path.isfile(fileName) and os.path.isfile(distFileName):
+    """a specific user, not a cluster of user"""
+    if len(clus_topic)==0 and os.path.isfile(fileName) and os.path.isfile(distFileName):
         
         f = open(fileName,'r')
         line = f.readline()
@@ -199,7 +201,6 @@ def lmsOfClusHr(users, user_topic, doc_topic, points):
 
     else:
 
-        the_user = users[User]
 
         clus_hr_lms = [] #for diff hrs to a clus, recommend diff lms
 
@@ -211,7 +212,7 @@ def lmsOfClusHr(users, user_topic, doc_topic, points):
 
             if len(points[the_clus]) > 20:
                 #estimate all scores of lms of this clus
-                lm_score_sort = find_landmark_score(points, points[the_clus], users, user_topic, doc_topic, False)
+                lm_score_sort = find_landmark_score(points, points[the_clus], users, user_topic, doc_topic, False, clus_topic)
 
                 #find hrs of this clus
                 dur_hr = []
@@ -301,10 +302,13 @@ def lmsOfClusHr(users, user_topic, doc_topic, points):
 
 
 """output: list of [lmId, lm_time, score]"""
-def find_landmark_score(points, somePoints, users, user_topic, doc_topic, load_by_file):
+def find_landmark_score(points, somePoints, users, user_topic, doc_topic, load_by_file, clus_topic):
     fileName = ' '.join(['data\\lm_score_sort', str(popImp), str(simImp), str(ulmImp)])+'.txt'
+    using_clus = False
+    if len(clus_topic)!=0:
+        using_clus = True
 
-    if load_by_file and os.path.isfile(fileName):
+    if not using_clus and load_by_file and os.path.isfile(fileName):
         lm_score_sort = []
 
         f = open(fileName,'r')
@@ -315,11 +319,17 @@ def find_landmark_score(points, somePoints, users, user_topic, doc_topic, load_b
         return np.array(lm_score_sort)
 
     else:
-        the_user = users[User]
         sim_users = []
+        if using_clus:
+            topic_row = clus_topic
+        else:
+            topic_row = user_topic[User]
+
+        the_user = users[User]
         for user_idx, user in enumerate(users):
-            if user != the_user:
-                sim_users.append([user, np.dot(user_topic[User],user_topic[user_idx]) ])
+            if user != the_user or using_clus:
+                sim_users.append([user, np.dot(topic_row,user_topic[user_idx]) ])
+
         sim_sorted = np.array(sorted(sim_users, key=itemgetter(1),reverse=True ))
 
         lm_score = []
@@ -393,9 +403,16 @@ def find_landmark_score(points, somePoints, users, user_topic, doc_topic, load_b
                 list_sim[i] = sim
 
                 # 3. user-landmark score
-                ulm = np.dot(user_topic[User], doc_topic[lmId]) #similarity between user and landmark
+                ulm = np.dot(topic_row, doc_topic[lmId]) #similarity between user and landmark
                 print ulm
                 list_ulm[i] = ulm
+
+        print list_lm
+        print list_sim
+        print list_ulm
+        # drawGmap.plotHist(list_lm, 1)
+        # drawGmap.plotHist(list_sim, 2)
+        # drawGmap.plotHist(list_ulm, 3)
 
         for i, lmId in enumerate(landmarks):
             the_lm = points[:,-1] == lmId
