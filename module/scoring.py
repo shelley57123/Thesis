@@ -204,6 +204,9 @@ def lmsOfClusHr(users, user_topic, doc_topic, points, clus_topic):
 
         clus_hr_lms = [] #for diff hrs to a clus, recommend diff lms
 
+
+        all_lm_score = find_all_lm(points, users, user_topic, doc_topic)
+
         for lid in range(clus_k):
             the_clus = points[:,-2] == lid
 
@@ -212,8 +215,14 @@ def lmsOfClusHr(users, user_topic, doc_topic, points, clus_topic):
 
             if len(points[the_clus]) > 20:
                 #estimate all scores of lms of this clus
-                lm_score_sort = find_landmark_score(points, points[the_clus], users, user_topic, doc_topic, False, clus_topic)
-
+                # lm_score_sort = find_landmark_score(points, points[the_clus], users, user_topic, doc_topic, False, clus_topic)
+                lm_score_sort = []
+                clus_lms = np.unique(points[the_clus, -1])
+                for row in all_lm_score:
+                    if row[0] in clus_lms:
+                        lm_score_sort.append(row)
+                lm_score_sort = np.array(sorted(lm_score_sort, key=itemgetter(2,1) ))
+                
                 #find hrs of this clus
                 dur_hr = []
                 for user in points[the_clus, 1]:
@@ -299,6 +308,90 @@ def lmsOfClusHr(users, user_topic, doc_topic, points, clus_topic):
         clus_hrs_dist_file.close()
 
     return clus_hr_sort
+
+
+"""output all landmarks"""
+def find_all_lm(points, users, user_topic, doc_topic):
+    sim_users = []
+
+    the_user = users[User]
+    for user_idx, user in enumerate(users):
+        if user != the_user:
+            sim_users.append([user, np.dot(user_topic[User],user_topic[user_idx]) ])
+
+    sim_sorted = np.array(sorted(sim_users, key=itemgetter(1),reverse=True ))
+
+    lm_score = []
+    #estimate all scores of lms of this clus
+    the_lms = points[:,-2] < 30
+    landmarks = points[the_lms,-1]
+    landmarks = np.unique(landmarks)
+
+    list_lm = [0]*len(landmarks)
+    list_sim = [0]*len(landmarks)
+    list_ulm = [0]*len(landmarks)
+    list_time = [0]*len(landmarks)
+
+    for i, lmId in enumerate(landmarks):
+        the_lm = points[:,-1] == lmId
+        landmark = points[the_lm]
+
+        if len(landmark) > 20:
+            
+            # 1. popularity
+            pop = len(landmark) 
+            print pop
+            list_lm[i] = pop
+
+            # 2. rate of similar people visiting lm
+            n = 100
+            c = 0
+            landmark_users = points[the_lm, 1]
+            
+            topN_sim_users = sim_sorted[:n]
+            for user in topN_sim_users:
+                if user[0] in landmark_users:
+                    c += 1
+            sim = c
+            print sim
+            list_sim[i] = sim
+
+            # 3. user-landmark score
+            ulm = np.dot(user_topic[User], doc_topic[lmId]) #similarity between user and landmark
+            print ulm
+            list_ulm[i] = ulm
+
+    print list_lm
+    print list_sim
+    print list_ulm
+    # drawGmap.plotHist(list_lm, 1)
+    # drawGmap.plotHist(list_sim, 2)
+    # drawGmap.plotHist(list_ulm, 3)
+
+    list_lm = (list_lm-np.min(list_lm)) / (np.max(list_lm)-np.min(list_lm))
+    list_sim = (list_sim-np.min(list_sim)) / (np.max(list_sim)-np.min(list_sim))
+    list_ulm = (list_ulm-np.min(list_ulm)) / (np.max(list_ulm)-np.min(list_ulm))
+    
+    print 'max_min pop'
+    print np.max(list_lm), np.min(list_lm)
+    print 'max_min sim'
+    print np.max(list_sim), np.min(list_sim)
+    print 'max_min ulm'
+    print np.max(list_ulm), np.min(list_ulm)
+
+    for i, lmId in enumerate(landmarks):
+        the_lm = points[:,-1] == lmId
+        landmark = points[the_lm]
+
+        if len(landmark) > 20:
+            # 4. total
+            #score = (pop * sim * ulm) ** (1/float(3))
+            score = popImp*list_lm[i] + simImp*list_sim[i] + ulmImp*list_ulm[i]
+            print 'score: '+str(score)+'\n'
+
+            lm_score.append([lmId, list_time[i], score])
+            
+    return lm_score
 
 
 """output: list of [lmId, lm_time, score]"""
@@ -407,13 +500,6 @@ def find_landmark_score(points, somePoints, users, user_topic, doc_topic, load_b
                 print ulm
                 list_ulm[i] = ulm
 
-        print list_lm
-        print list_sim
-        print list_ulm
-        # drawGmap.plotHist(list_lm, 1)
-        # drawGmap.plotHist(list_sim, 2)
-        # drawGmap.plotHist(list_ulm, 3)
-
         for i, lmId in enumerate(landmarks):
             the_lm = points[:,-1] == lmId
             landmark = points[the_lm]
@@ -426,13 +512,6 @@ def find_landmark_score(points, somePoints, users, user_topic, doc_topic, load_b
                     list_ulm = (list_ulm-np.min(list_ulm)) / (np.max(list_ulm)-np.min(list_ulm))
                 elif np.max(list_ulm)>0:
                     list_ulm = list_ulm / np.max(list_ulm)
-
-                print 'max_min pop'
-                print np.max(list_lm), np.min(list_lm)
-                print 'max_min sim'
-                print np.max(list_sim), np.min(list_sim)
-                print 'max_min ulm'
-                print np.max(list_ulm), np.min(list_ulm)
 
                 # 4. total
                 #score = (pop * sim * ulm) ** (1/float(3))

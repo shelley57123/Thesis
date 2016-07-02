@@ -88,10 +88,8 @@ user_topic, users, users_pic_num = ldaAdd.userTopic(USER_FILE, points, doc_topic
 sc.estTransOrder(points, users, cluster_centers)
 
 """adjust weight beteen 3 parameter"""
-# for i in range(1,10):
-# 	for j in range(1,11-i):
-for i in range(1,2):
-	for j in range(1,2):
+for i in range(1,10):
+	for j in range(1,11-i):
 		para = open(PARA_FILE,'a')
 
 		sc.popImp = i*0.1
