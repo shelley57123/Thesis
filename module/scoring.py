@@ -4,6 +4,7 @@ import numpy as np
 from operator import itemgetter
 from geopy.distance import great_circle
 import drawGmap
+# from sklearn import preprocessing
 
 numK = 20
 topK = []
@@ -166,14 +167,14 @@ def estTransOrder(points, users, cluster_centers):
 
 
 """find landmarks to recommend of different clus-hr"""
-def lmsOfClusHr(users, user_topic, doc_topic, points, clus_topic):
+def lmsOfClusHr(users, user_topic, doc_topic, points, spe_topic_vec):
 
     global clus_hr_sort
     fileName = ' '.join(['data\\clus_hr_sort\\clus_hr_sort', str(popImp), str(simImp), str(ulmImp)])+'.txt'
     distFileName = 'data\\clus_hrs_dist.txt'
 
     """a specific user, not a cluster of user"""
-    if len(clus_topic)==0 and os.path.isfile(fileName) and os.path.isfile(distFileName):
+    if len(spe_topic_vec)==0 and os.path.isfile(fileName) and os.path.isfile(distFileName):
         
         f = open(fileName,'r')
         line = f.readline()
@@ -200,12 +201,9 @@ def lmsOfClusHr(users, user_topic, doc_topic, points, clus_topic):
         df.close()
 
     else:
-
-
         clus_hr_lms = [] #for diff hrs to a clus, recommend diff lms
 
-
-        all_lm_score = find_all_lm(points, users, user_topic, doc_topic)
+        all_lm_score = find_all_lm(points, users, user_topic, doc_topic, spe_topic_vec)
 
         for lid in range(clus_k):
             the_clus = points[:,-2] == lid
@@ -311,13 +309,18 @@ def lmsOfClusHr(users, user_topic, doc_topic, points, clus_topic):
 
 
 """output all landmarks"""
-def find_all_lm(points, users, user_topic, doc_topic):
+def find_all_lm(points, users, user_topic, doc_topic, spe_topic_vec):
+    if len(spe_topic_vec) > 0:
+        topic_row = spe_topic_vec
+    else:
+        topic_row = user_topic[User]
+
     sim_users = []
 
     the_user = users[User]
     for user_idx, user in enumerate(users):
         if user != the_user:
-            sim_users.append([user, np.dot(user_topic[User],user_topic[user_idx]) ])
+            sim_users.append([user, np.dot(topic_row,user_topic[user_idx]) ])
 
     sim_sorted = np.array(sorted(sim_users, key=itemgetter(1),reverse=True ))
 
@@ -357,27 +360,62 @@ def find_all_lm(points, users, user_topic, doc_topic):
             list_sim[i] = sim
 
             # 3. user-landmark score
-            ulm = np.dot(user_topic[User], doc_topic[lmId]) #similarity between user and landmark
+            ulm = np.dot(topic_row, doc_topic[lmId]) #similarity between user and landmark
             print ulm
             list_ulm[i] = ulm
+
+    list_lm = (list_lm-np.min(list_lm)+1) / float(np.max(list_lm)-np.min(list_lm))
+    list_sim = (list_sim-np.min(list_sim)+1) / float(np.max(list_sim)-np.min(list_sim))
+    list_ulm = (list_ulm-np.min(list_ulm)) / (np.max(list_ulm)-np.min(list_ulm))
 
     print list_lm
     print list_sim
     print list_ulm
+
+    print 'mean of lm, sim, ulm'
+    print np.mean(list_lm)
+    print np.mean(list_sim)
+    print np.mean(list_ulm)
+
+    drawGmap.plotHist(list_lm, 1)
+    list_lm = np.array([math.log(float(x)) for x in list_lm])
+    drawGmap.plotHist(list_lm, 1)
+    # drawGmap.plotHist(preprocessing.scale(list_lm), 1)
+    # drawGmap.plotHist(preprocessing.normalize(list_lm, norm='l2'), 1)
+
+    drawGmap.plotHist(list_sim, 2)
+    list_sim = np.array([math.log10(float(x)) for x in list_sim])
+    drawGmap.plotHist(list_sim, 2)
+    # drawGmap.plotHist(preprocessing.scale(list_sim), 2)
+    # drawGmap.plotHist(preprocessing.normalize(list_sim, norm='l2'), 2)
+
+    list_lm = (list_lm-np.min(list_lm)) / float(np.max(list_lm)-np.min(list_lm))
+    list_sim = (list_sim-np.min(list_sim)) / float(np.max(list_sim)-np.min(list_sim))
+
+    # for i, s in enumerate(list_lm):
+    #     if s*12.0 < 1:
+    #         list_lm[i] = s*12.0
+    #     else:
+    #         list_lm[i] = 1
+    #     # elif s <= 0.2:
+    #     #     list_lm[i] = 0.6+(s-0.1)*2.0
+    #     # else:
+    #     #     list_lm[i] = 0.8+(s-0.2)/4.0
+            
+    # for i, s in enumerate(list_sim):
+    #     if s <= 0.2:
+    #         list_sim[i] = s*4.0
+    #     else:
+    #         list_sim[i] = 0.8+(s-0.2)/4.0
+
+    print 'mean of lm, sim, ulm'
+    print np.mean(list_lm)
+    print np.mean(list_sim)
+    print np.mean(list_ulm)
+    
     # drawGmap.plotHist(list_lm, 1)
     # drawGmap.plotHist(list_sim, 2)
     # drawGmap.plotHist(list_ulm, 3)
-
-    list_lm = (list_lm-np.min(list_lm)) / (np.max(list_lm)-np.min(list_lm))
-    list_sim = (list_sim-np.min(list_sim)) / (np.max(list_sim)-np.min(list_sim))
-    list_ulm = (list_ulm-np.min(list_ulm)) / (np.max(list_ulm)-np.min(list_ulm))
-    
-    print 'max_min pop'
-    print np.max(list_lm), np.min(list_lm)
-    print 'max_min sim'
-    print np.max(list_sim), np.min(list_sim)
-    print 'max_min ulm'
-    print np.max(list_ulm), np.min(list_ulm)
 
     for i, lmId in enumerate(landmarks):
         the_lm = points[:,-1] == lmId
