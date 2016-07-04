@@ -382,7 +382,7 @@ def find_all_lm(points, users, user_topic, doc_topic, spe_topic_vec):
 
     list_lm = (list_lm-np.min(list_lm)) / float(np.max(list_lm)-np.min(list_lm))
     list_sim = (list_sim-np.min(list_sim)) / float(np.max(list_sim)-np.min(list_sim))
-    list_ulm = list_ulm * 0.8
+    list_ulm = list_ulm * 0.9
 
     print 'mean of lm, sim, ulm'
     print np.mean(list_lm)

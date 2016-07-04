@@ -96,7 +96,6 @@ sc.estTransOrder(points, users, cluster_centers)
 
 """estimate precision of one extraction"""
 hit = 0
-plsa_hit = 0
 total = 0
 for i, the_user in enumerate(users):
     user_paths = []
@@ -111,7 +110,10 @@ for i, the_user in enumerate(users):
         
         for diffClusIdx, diffLmIdx, path in user_paths:
             pastClus = np.unique(path[:diffClusIdx+1,-2])
+            pastLm = np.unique(path[:diffLmIdx+1,-1])
+
             startClus = path[diffClusIdx,-2]
+            startLm = path[diffLmIdx,-1]
 
             T0 = path[diffClusIdx,5]+ round(path[diffClusIdx,6]/60.0)
             max_score = 0
@@ -129,64 +131,20 @@ for i, the_user in enumerate(users):
                     clusTime = sc.clus_time[thisClus][ktime%24]
 
                     kscore = thisScore * cond * clusTime
+                    print 'kscore'
+                    print kscore
                     if kscore > max_score:
                         max_clus = thisClus
                         max_score = kscore 
 
             if max_clus == path[-1,-2]:
                 hit += 1
-
-
-            pastLm = np.unique(path[:diffLmIdx+1,-1])
-            startLm = path[diffLmIdx,-1]
-            T02 = path[diffLmIdx,5]+ round(path[diffLmIdx,6]/60.0)
-            max_score = 0
-            max_lm = -1
-            for lm in lm_score_sort[:,0]:
-                thisClus = sc.map_col(points, -1, -2, lm)
-                preClus = path[diffLmIdx,-2]
-                if lm not in pastLm and thisClus < sc.clus_k and preClus < sc.clus_k :
-                    
-                    thisLm_score = sc.map_col(lm_score_sort, 0, 2, lm)
-                    thisLm_hrs = sc.map_col(lm_score_sort, 0, 1, lm)
-                    thisClus_hrs = thisLm_hrs
-                    #find real preClus
-                    for i in range(diffClusIdx+1):
-                        if path[-2-i,-2] != thisClus :
-                            preClus = path[-2-i,-2]
-                            break
-                        else:
-                            thisClus_hrs += sc.map_col(lm_score_sort, 0, 1, path[-2-i,-1])
-                    thisClus_hrs = round(thisClus_hrs)
-
-                    m = sc.map_col(sc.clus_hrs_dist, 0, 1, thisClus)
-                    std = sc.map_col(sc.clus_hrs_dist, 0, 2, thisClus)
-                    vec = sc.map_col(sc.clus_hrs_dist, 0, 3, thisClus)
-
-                    kls = sc.find_kl(vec, m, std, thisClus_hrs)
-
-                    if preClus != thisClus:
-                        ktime = round( T02 + trans_hr[preClus][thisClus] + thisLm_hrs/2 )
-                        newScore = thisLm_score* kls* \
-                                    clus_order[preClus][thisClus]* clus_time[thisClus][ktime%24]
-                    else:
-                        ktime = round( T02 + thisLm_hrs/2 )
-                        newScore = thisLm_score* kls* clus_time[thisClus][ktime%24]
-
-                    if newScore > max_score:
-                        max_lm = lm
-                        max_score = newScore
-
-            if max_lm == path[-1,-1]:
-                plsa_hit += 1
             total += 1
 
-            print 'path, predict_clus, user, #userpaths'
-            print path, max_clus, i, len(user_paths)
-            print 'Hit, Total, Precision:'
-            print hit, total, hit/float(total)
-            print 'Plsa Hit, Precision:'
-            print plsa_hit, plsa_hit/float(total)
+            print 'user, #userpaths, path, predict_clus'
+            print i, len(user_paths), path, max_clus
+            print 'Precision:'
+            print hit/float(total)
 
 print 'Precision of Total:'
 print hit/float(total)

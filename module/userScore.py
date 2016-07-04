@@ -63,11 +63,12 @@ def userClus(user_topic, topic_word, dic):
     return clus_topic
 
 
-def userTopic_minus(USER_FILE, points, doc_topic):
+def userTopic_minus(USER_FILE, points, doc_topic, plsa_doc_topic):
 
     uall = open(USER_FILE,'r')
     ucount = 0
     user_topic = []
+    plsa_user_topic = []
     users = []
     paths = []
     t = 0
@@ -84,7 +85,9 @@ def userTopic_minus(USER_FILE, points, doc_topic):
         tsorted = np.array(sorted(points[user_points], key=itemgetter(2,3,4,5,6,7)))
 
         n = 0
+        n2 = 0
         person_vec = np.zeros(topicNum, dtype=float)#topic amount
+        plsa_person_vec = np.zeros(topicNum, dtype=float)#topic amount
         if len(tsorted)>0:
 
             #dates of all posts of user
@@ -101,23 +104,37 @@ def userTopic_minus(USER_FILE, points, doc_topic):
                 #locations of posts in this date
                 l = len(tsorted[same_date])
                 path = tsorted[same_date]
+                
                 diffClusIdx = -1
                 for i in range(l-1):
                     if path[-i-2,-2] != path[-1,-2]:
                         diffClusIdx = l-i-2
+                
+                diffLmIdx = -1
+                for i in range(l-1):
+                    if path[-i-2,-1] != path[-1,-1]:
+                        diffLmIdx = l-i-2
 
                 if l > 5 and diffClusIdx != -1 and path[-i-2,-2] < sc.clus_k and path[-1,-2] < sc.clus_k:
                     for val in path[:diffClusIdx+1]:
                         person_vec += doc_topic[ val[-1] ] 
                         n += 1
-                    paths.append([user, diffClusIdx, path])
+                    for val in path[:diffLmIdx+1]:
+                        plsa_person_vec += plsa_doc_topic[ val[-1] ] 
+                        n2 += 1
+                    paths.append([user, diffClusIdx, diffLmIdx, path])
 
                 else:
                     for val in path:
                         person_vec += doc_topic[ val[-1] ] 
+                        plsa_person_vec += plsa_doc_topic[ val[-1] ] 
                         n += 1
+                        n2 += 1
 
         person_vec =  person_vec / float(n)
         user_topic.append(person_vec)
 
-    return [user_topic, users, paths]
+        plsa_person_vec =  plsa_person_vec / float(n2)
+        plsa_user_topic.append(plsa_person_vec)
+
+    return [user_topic, plsa_user_topic, users, paths]
