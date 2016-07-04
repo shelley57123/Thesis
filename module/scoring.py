@@ -4,7 +4,7 @@ import numpy as np
 from operator import itemgetter
 from geopy.distance import great_circle
 import drawGmap
-# from sklearn import preprocessing
+from sklearn.decomposition import nmf
 
 numK = 20
 topK = []
@@ -67,13 +67,13 @@ def estTransOrder(points, users, cluster_centers):
         transTimes = [] #number of times between each pair of clusters(no direction)
         for i in range(clus_k):
             trans_hr.append(np.zeros(clus_k))
-            clus_order.append(np.ones(clus_k)*50)
+            clus_order.append(np.zeros(clus_k)*50)
         trans_hr = transTimes = np.array(trans_hr)
         clus_order = np.array(clus_order)
 
         global clus_time
         for i in range(clus_k):
-            clus_time.append( np.ones(24)*50)
+            clus_time.append( np.zeros(24)*50)
         clus_time = np.array(clus_time)
 
         allusers = np.unique(points[:,1])
@@ -151,11 +151,15 @@ def estTransOrder(points, users, cluster_centers):
         np.savetxt(t_hr_file, np.array(trans_hr))
 
         clus_order = clus_order / np.max(clus_order)
+        W, H, iter=nmf.non_negative_factorization(clus_order, n_components=10,random_state=2)
+        clus_order = np.dot(W,H)
         print 'condition probability:'
         print clus_order
         np.savetxt(c_order_file, np.array(clus_order))
 
         clus_time = clus_time / np.amax(clus_time, axis = 1)[:, None]
+        W, H, iter=nmf.non_negative_factorization(clus_time, n_components=10,random_state=2)
+        clus_time = np.dot(W,H)
         print 'cluster time:'
         print clus_time
         np.savetxt(c_time_file, np.array(clus_time))
@@ -274,10 +278,10 @@ def lmsOfClusHr(users, user_topic, doc_topic, points, spe_topic_vec):
                         if len(lm_choose) > 0:
                             lm_choose = np.array(lm_choose)
                             score = sum(lm_choose[:,2])
-                            print 'score'+str(score)
+                            # print 'score'+str(score)
                         
                             clus_hr_lms.append([lid, hr, score*kls, lm_choose])
-                        print '\n'
+                        # print '\n'
 
         clus_hr_sort = sorted(clus_hr_lms, key=itemgetter(2), reverse = True )
 
@@ -343,7 +347,7 @@ def find_all_lm(points, users, user_topic, doc_topic, spe_topic_vec):
             
             # 1. popularity
             pop = len(landmark) 
-            print pop
+            # print pop
             list_lm[i] = pop
 
             # 2. rate of similar people visiting lm
@@ -356,66 +360,35 @@ def find_all_lm(points, users, user_topic, doc_topic, spe_topic_vec):
                 if user[0] in landmark_users:
                     c += 1
             sim = c
-            print sim
+            # print sim
             list_sim[i] = sim
 
             # 3. user-landmark score
             ulm = np.dot(topic_row, doc_topic[lmId]) #similarity between user and landmark
-            print ulm
+            # print ulm
             list_ulm[i] = ulm
 
     list_lm = (list_lm-np.min(list_lm)+1) / float(np.max(list_lm)-np.min(list_lm))
     list_sim = (list_sim-np.min(list_sim)+1) / float(np.max(list_sim)-np.min(list_sim))
     list_ulm = (list_ulm-np.min(list_ulm)) / (np.max(list_ulm)-np.min(list_ulm))
 
-    print list_lm
-    print list_sim
-    print list_ulm
-
-    print 'mean of lm, sim, ulm'
-    print np.mean(list_lm)
-    print np.mean(list_sim)
-    print np.mean(list_ulm)
-
-    drawGmap.plotHist(list_lm, 1)
+    # drawGmap.plotHist(list_lm, 1)
     list_lm = np.array([math.log(float(x)) for x in list_lm])
-    drawGmap.plotHist(list_lm, 1)
-    # drawGmap.plotHist(preprocessing.scale(list_lm), 1)
-    # drawGmap.plotHist(preprocessing.normalize(list_lm, norm='l2'), 1)
+    # drawGmap.plotHist(list_lm, 1)
 
-    drawGmap.plotHist(list_sim, 2)
-    list_sim = np.array([math.log10(float(x)) for x in list_sim])
-    drawGmap.plotHist(list_sim, 2)
-    # drawGmap.plotHist(preprocessing.scale(list_sim), 2)
-    # drawGmap.plotHist(preprocessing.normalize(list_sim, norm='l2'), 2)
+    # drawGmap.plotHist(list_sim, 2)
+    list_sim = np.array([math.log(float(x)) for x in list_sim])
+    # drawGmap.plotHist(list_sim, 2)
 
     list_lm = (list_lm-np.min(list_lm)) / float(np.max(list_lm)-np.min(list_lm))
     list_sim = (list_sim-np.min(list_sim)) / float(np.max(list_sim)-np.min(list_sim))
-
-    # for i, s in enumerate(list_lm):
-    #     if s*12.0 < 1:
-    #         list_lm[i] = s*12.0
-    #     else:
-    #         list_lm[i] = 1
-    #     # elif s <= 0.2:
-    #     #     list_lm[i] = 0.6+(s-0.1)*2.0
-    #     # else:
-    #     #     list_lm[i] = 0.8+(s-0.2)/4.0
-            
-    # for i, s in enumerate(list_sim):
-    #     if s <= 0.2:
-    #         list_sim[i] = s*4.0
-    #     else:
-    #         list_sim[i] = 0.8+(s-0.2)/4.0
+    list_ulm = list_ulm * 0.8
 
     print 'mean of lm, sim, ulm'
     print np.mean(list_lm)
     print np.mean(list_sim)
     print np.mean(list_ulm)
     
-    # drawGmap.plotHist(list_lm, 1)
-    # drawGmap.plotHist(list_sim, 2)
-    # drawGmap.plotHist(list_ulm, 3)
 
     for i, lmId in enumerate(landmarks):
         the_lm = points[:,-1] == lmId
@@ -423,9 +396,7 @@ def find_all_lm(points, users, user_topic, doc_topic, spe_topic_vec):
 
         if len(landmark) > 20:
             # 4. total
-            #score = (pop * sim * ulm) ** (1/float(3))
             score = popImp*list_lm[i] + simImp*list_sim[i] + ulmImp*list_ulm[i]
-            print 'score: '+str(score)+'\n'
 
             lm_score.append([lmId, list_time[i], score])
             

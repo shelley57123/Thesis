@@ -106,7 +106,7 @@ for i, the_user in enumerate(users):
             for clus_hr in clus_hr_sort:
                 thisClus, thisHr, thisScore = (clus_hr[0], clus_hr[1], clus_hr[2])
 
-                if thisClus < sc.clus_k and startClus < sc.clus_k and startClus != thisClus:
+                if thisClus not in pastClus:
 
                     # timeLen = sc.trans_hr[startClus][thisClus] + thisHr
                     #take the middle of visit as visiting hr (14:30 is credited to 14:00) rather than start time
@@ -116,14 +116,21 @@ for i, the_user in enumerate(users):
                     clusTime = sc.clus_time[thisClus][ktime%24]
 
                     kscore = thisScore * cond * clusTime
-                    if kscore > max_score:
+                    print 'kscore'
+                    print kscore
+                    if kscore >= max_score:
                         max_clus = thisClus
 
             if max_clus == path[-1,-2]:
                 hit += 1
             total += 1
 
-print 'Precision:'
+            print 'user, #userpaths, path, predict_clus'
+            print i, len(user_paths), path, max_clus
+            print 'Precision:'
+            print hit/float(total)
+
+print 'Precision of Total:'
 print hit/float(total)
 
 

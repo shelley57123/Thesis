@@ -96,42 +96,21 @@ plsa_user_topic, users, users_pic_num = ldaAdd.userTopic(USER_FILE, points, plsa
 """trans/clus time, order score"""
 sc.estTransOrder(points, users, cluster_centers)
 
-# clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, points, [])
-# lm_score_sort = sc.find_landmark_score(points, points, users, plsa_user_topic, plsa_doc_topic, True, [])
+clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, points, [])
+lm_score_sort = sc.find_landmark_score(points, points, users, plsa_user_topic, plsa_doc_topic, True, [])
 
-# """prefixDFS"""
-# sc.prefixDFS(clus_hr_sort, frozenset())
-# print 'TopK'
-# print sc.topK
+"""prefixDFS"""
+sc.prefixDFS(clus_hr_sort, frozenset())
+print 'TopK'
+print sc.topK
 
-# """cmp Alg"""
-# topK_cmp = sc.cmp_method_generate_route(8, 1, lm_score_sort, points) #d, e, lm_score_sort, points
-# print 'TopK_cmp'
-# print topK_cmp
+"""cmp Alg"""
+topK_cmp = sc.cmp_method_generate_route(8, 1, lm_score_sort, points) #d, e, lm_score_sort, points
+print 'TopK_cmp'
+print topK_cmp
 
-
-"""adjust weight between 3 parameter"""
-for i in range(1,10):
-	for j in range(1,10):
-		para = open(PARA_FILE,'a')
-
-		sc.popImp = i*0.1
-		sc.simImp = j*0.1
-		sc.ulmImp = 1 - sc.popImp - sc.simImp
-		print sc.popImp, sc.simImp, sc.ulmImp
-
-		clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, points, [])
-
-		"""prefixDFS"""
-		sc.prefixDFS(clus_hr_sort, frozenset())
-		print 'TopK'
-		print sc.topK
-
-		para.write(str(sc.popImp)+' '+str(sc.simImp)+' '+str(sc.ulmImp)+' '+str(sc.topK_avg_score(sc.topK, 0))+'\n' )
-		para.close()
-
-# drawGmap.drawTopK(sc.topK, cluster_centers, cluster_centers2)
-# drawGmap.drawTopK_cmp(topK_cmp, cluster_centers2)
+drawGmap.drawTopK(sc.topK, cluster_centers, cluster_centers2)
+drawGmap.drawTopK_cmp(topK_cmp, cluster_centers2)
 
 
 """Average score with different K"""
