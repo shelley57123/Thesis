@@ -50,3 +50,4 @@ Temporary Items
 *.pyc
 *.csv
 Rubbish/tmp/lock
+*.mega
