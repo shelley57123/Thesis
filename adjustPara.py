@@ -99,7 +99,7 @@ for j in range(1,10):
 			sc.ulmImp = 0.0
 		print sc.popImp, sc.simImp, sc.ulmImp
 
-		clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, points, [])
+		clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, points, [], users[sc.User])
 
 		sc.topK = []
 		sc.clus_hr_sort = []

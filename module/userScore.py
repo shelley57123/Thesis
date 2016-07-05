@@ -115,7 +115,11 @@ def userTopic_minus(USER_FILE, points, doc_topic, plsa_doc_topic):
                     if path[-i-2,-1] != path[-1,-1]:
                         diffLmIdx = l-i-2
 
-                if l > 5 and diffClusIdx != -1 and path[-i-2,-2] < sc.clus_k and path[-1,-2] < sc.clus_k:
+                pastClus = np.unique(path[:diffClusIdx+1,-2])
+                pastLm = np.unique(path[:diffLmIdx+1,-1])
+
+                if l > 5 and diffClusIdx != -1 and path[diffClusIdx,-2] < sc.clus_k and \
+                path[-1,-2] < sc.clus_k and path[-1,-2] not in pastClus and path[-1,-2] not in pastLm:
                     for val in path[:diffClusIdx+1]:
                         person_vec += doc_topic[ val[-1] ] 
                         n += 1

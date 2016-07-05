@@ -100,14 +100,16 @@ plsa_hit = 0
 total = 0
 for i, the_user in enumerate(users):
     user_paths = []
+    sc.list_sim = []
+
     for user, diffClusIdx, diffLmIdx, path in paths:
         if user == the_user:
             user_paths.append([diffClusIdx, diffLmIdx, path])
 
     if len(user_paths) > 0:
         sc.clus_hr_sort = []
-        clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, points, user_topic[i])
-        lm_score_sort = sc.find_landmark_score(points, points, users, plsa_user_topic, plsa_doc_topic, True, [])
+        clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, points, user_topic[i], the_user)
+        lm_score_sort = sc.find_all_lm(points, users, plsa_user_topic, plsa_doc_topic, [], True, the_user)
         
         for diffClusIdx, diffLmIdx, path in user_paths:
             pastClus = np.unique(path[:diffClusIdx+1,-2])
@@ -135,7 +137,9 @@ for i, the_user in enumerate(users):
 
             if max_clus == path[-1,-2]:
                 hit += 1
-
+                
+            print 'Hit, Total'
+            print hit, total
 
             pastLm = np.unique(path[:diffLmIdx+1,-1])
             startLm = path[diffLmIdx,-1]
@@ -166,12 +170,12 @@ for i, the_user in enumerate(users):
                     kls = sc.find_kl(vec, m, std, thisClus_hrs)
 
                     if preClus != thisClus:
-                        ktime = round( T02 + trans_hr[preClus][thisClus] + thisLm_hrs/2 )
+                        ktime = round( T02 + sc.trans_hr[preClus][thisClus] + thisLm_hrs/2 )
                         newScore = thisLm_score* kls* \
-                                    clus_order[preClus][thisClus]* clus_time[thisClus][ktime%24]
+                                    sc.clus_order[preClus][thisClus]* sc.clus_time[thisClus][ktime%24]
                     else:
                         ktime = round( T02 + thisLm_hrs/2 )
-                        newScore = thisLm_score* kls* clus_time[thisClus][ktime%24]
+                        newScore = thisLm_score* kls* sc.clus_time[thisClus][ktime%24]
 
                     if newScore > max_score:
                         max_lm = lm
@@ -181,8 +185,8 @@ for i, the_user in enumerate(users):
                 plsa_hit += 1
             total += 1
 
-            print 'path, predict_clus, user, #userpaths'
-            print path, max_clus, i, len(user_paths)
+            print 'path, predict_clus, user, #userpaths, paths'
+            print path, max_clus, i, len(user_paths), len(paths)
             print 'Hit, Total, Precision:'
             print hit, total, hit/float(total)
             print 'Plsa Hit, Precision:'

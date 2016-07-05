@@ -40,8 +40,13 @@ clus_time = []
 clus_order = []
 
 clus_hr_sort = []
-
 clus_hrs_dist = []
+
+list_pop = []
+list_sim = []
+list_ulm = []
+list_time = []
+landmarks = []
 
 """estimate trans/clus time, order score"""
 def estTransOrder(points, users, cluster_centers):
@@ -171,10 +176,10 @@ def estTransOrder(points, users, cluster_centers):
 
 
 """find landmarks to recommend of different clus-hr"""
-def lmsOfClusHr(users, user_topic, doc_topic, points, spe_topic_vec):
+def lmsOfClusHr(users, user_topic, doc_topic, points, spe_topic_vec, user):
 
     global clus_hr_sort
-    fileName = ' '.join(['data\\clus_hr_sort\\clus_hr_sort', str(popImp), str(simImp), str(ulmImp)])+'.txt'
+    fileName = ' '.join(['data\\clus_hr_sort\\clus_hr_sort', str(popImp), str(simImp), str(ulmImp), str(user)])+'.txt'
     distFileName = 'data\\clus_hrs_dist.txt'
 
     """a specific user, not a cluster of user"""
@@ -207,7 +212,16 @@ def lmsOfClusHr(users, user_topic, doc_topic, points, spe_topic_vec):
     else:
         clus_hr_lms = [] #for diff hrs to a clus, recommend diff lms
 
-        all_lm_score = find_all_lm(points, users, user_topic, doc_topic, spe_topic_vec)
+        if len(list_sim)==0:
+            all_lm_score = find_all_lm(points, users, user_topic, doc_topic, spe_topic_vec, True, user)
+        else:
+            all_lm_score = []
+            for i, lmId in enumerate(landmarks):
+                the_lm = points[:,-1] == lmId
+                landmark = points[the_lm]
+                if len(landmark) > 20:
+                    score = popImp*list_pop[i] + simImp*list_sim[i] + ulmImp*list_ulm[i]
+                    all_lm_score.append([lmId, list_time[i], score])
 
         for lid in range(clus_k):
             the_clus = points[:,-2] == lid
@@ -313,183 +327,66 @@ def lmsOfClusHr(users, user_topic, doc_topic, points, spe_topic_vec):
 
 
 """output all landmarks"""
-def find_all_lm(points, users, user_topic, doc_topic, spe_topic_vec):
-    if len(spe_topic_vec) > 0:
-        topic_row = spe_topic_vec
-    else:
-        topic_row = user_topic[User]
+"""specific user: len(user)>0 & len(spe_topic_vec)>0---save & load"""
+"""specific topic vec: len(spe_topic_vec)>0"""
+def find_all_lm(points, users, user_topic, doc_topic, spe_topic_vec, load_by_file, user):
+    global list_pop
+    global list_sim
+    global list_ulm
+    global list_time
+    global landmarks
 
-    sim_users = []
+    fileName = ' '.join(['data\\lm_score_sort\\lm_score_sort', str(popImp), str(simImp), str(ulmImp), str(user)])+'.txt'
+    spe_clus = False
+    if len(user)==0:
+        spe_clus = True
 
-    the_user = users[User]
-    for user_idx, user in enumerate(users):
-        if user != the_user:
-            sim_users.append([user, np.dot(topic_row,user_topic[user_idx]) ])
-
-    sim_sorted = np.array(sorted(sim_users, key=itemgetter(1),reverse=True ))
-
-    lm_score = []
-    #estimate all scores of lms of this clus
-    the_lms = points[:,-2] < 30
-    landmarks = points[the_lms,-1]
-    landmarks = np.unique(landmarks)
-
-    list_lm = [0]*len(landmarks)
-    list_sim = [0]*len(landmarks)
-    list_ulm = [0]*len(landmarks)
-    list_time = [0]*len(landmarks)
-
-    for i, lmId in enumerate(landmarks):
-        the_lm = points[:,-1] == lmId
-        landmark = points[the_lm]
-
-        if len(landmark) > 20:
-            
-            # 1. popularity
-            pop = len(landmark) 
-            # print pop
-            list_lm[i] = pop
-
-            # 2. rate of similar people visiting lm
-            n = 100
-            c = 0
-            landmark_users = points[the_lm, 1]
-            
-            topN_sim_users = sim_sorted[:n]
-            for user in topN_sim_users:
-                if user[0] in landmark_users:
-                    c += 1
-            sim = c
-            # print sim
-            list_sim[i] = sim
-
-            # 3. user-landmark score
-            ulm = np.dot(topic_row, doc_topic[lmId]) #similarity between user and landmark
-            # print ulm
-            list_ulm[i] = ulm
-
-    list_lm = (list_lm-np.min(list_lm)+1) / float(np.max(list_lm)-np.min(list_lm))
-    list_sim = (list_sim-np.min(list_sim)+1) / float(np.max(list_sim)-np.min(list_sim))
-    list_ulm = (list_ulm-np.min(list_ulm)) / (np.max(list_ulm)-np.min(list_ulm))
-
-    # drawGmap.plotHist(list_lm, 1)
-    list_lm = np.array([math.log(float(x)) for x in list_lm])
-    # drawGmap.plotHist(list_lm, 1)
-
-    # drawGmap.plotHist(list_sim, 2)
-    list_sim = np.array([math.log(float(x)) for x in list_sim])
-    # drawGmap.plotHist(list_sim, 2)
-
-    list_lm = (list_lm-np.min(list_lm)) / float(np.max(list_lm)-np.min(list_lm))
-    list_sim = (list_sim-np.min(list_sim)) / float(np.max(list_sim)-np.min(list_sim))
-    list_ulm = list_ulm * 0.9
-
-    print 'mean of lm, sim, ulm'
-    print np.mean(list_lm)
-    print np.mean(list_sim)
-    print np.mean(list_ulm)
-    
-
-    for i, lmId in enumerate(landmarks):
-        the_lm = points[:,-1] == lmId
-        landmark = points[the_lm]
-
-        if len(landmark) > 20:
-            # 4. total
-            score = popImp*list_lm[i] + simImp*list_sim[i] + ulmImp*list_ulm[i]
-
-            lm_score.append([lmId, list_time[i], score])
-            
-    return lm_score
-
-
-"""output: list of [lmId, lm_time, score]"""
-def find_landmark_score(points, somePoints, users, user_topic, doc_topic, load_by_file, clus_topic):
-    fileName = ' '.join(['data\\lm_score_sort', str(popImp), str(simImp), str(ulmImp)])+'.txt'
-    using_clus = False
-    if len(clus_topic)!=0:
-        using_clus = True
-
-    if not using_clus and load_by_file and os.path.isfile(fileName):
+    if not spe_clus and load_by_file and os.path.isfile(fileName):
         lm_score_sort = []
 
         f = open(fileName,'r')
         for line in f.readlines():
             lm, time, score = line.split()
             lm_score_sort.append([float(lm), float(time), float(score)])
-
+        print 'load lm_score '
         return np.array(lm_score_sort)
 
     else:
-        sim_users = []
-        if using_clus:
-            topic_row = clus_topic
+
+        if len(spe_topic_vec) > 0:
+            topic_row = spe_topic_vec
         else:
             topic_row = user_topic[User]
 
+        sim_users = []
+
         the_user = users[User]
         for user_idx, user in enumerate(users):
-            if user != the_user or using_clus:
+            if user != the_user:
                 sim_users.append([user, np.dot(topic_row,user_topic[user_idx]) ])
 
         sim_sorted = np.array(sorted(sim_users, key=itemgetter(1),reverse=True ))
 
         lm_score = []
         #estimate all scores of lms of this clus
-        landmarks = somePoints[:,-1]
+        the_lms = points[:,-2] < 30
+        landmarks = points[the_lms,-1]
         landmarks = np.unique(landmarks)
 
-        list_lm = [0]*len(landmarks)
         list_sim = [0]*len(landmarks)
         list_ulm = [0]*len(landmarks)
-        list_time = [0]*len(landmarks)
 
         for i, lmId in enumerate(landmarks):
             the_lm = points[:,-1] == lmId
             landmark = points[the_lm]
 
-            if len(landmark) > 20:
-                #avg time of landmark
+            if len(list_pop) == 0:
+                find_pop(points)
 
-                dur_hr = []
-                for user in points[the_lm, 1]:
-                    if user in users:
-                        user_points = points[the_lm,1] == user
-                       
-                        #for all points of the user, sort by time(index 2-7)
-                        tsorted = np.array(sorted((points[the_lm])[user_points], key=itemgetter(2,3,4,5,6,7)))
-                        
-                        #dates of all posts of user
-                        datesToPier = np.vstack({tuple(row) for row in tsorted[:,2:5]})#remove duplicate date
-                        for date in datesToPier:
-                            
-                            #locations of the user visited in this date(boolean list)
-                            same_date = tsorted[:,2:5] == date
-                            sd = []
-                            for d in same_date:
-                                sd.append(d.all())
-                            same_date = np.array(sd, dtype=bool)
-                            
-                            #add time difference of this day
-                            hr2 = (tsorted[same_date])[-1][5] + (tsorted[same_date])[-1][6]/60.0 #last time of post today
-                            hr1 = (tsorted[same_date])[0][5] + (tsorted[same_date])[0][6]/60.0 #first time of post today
-                            dur_hr.append(hr2 - hr1)
-                
-                if len(dur_hr)>0:
-                    lm_time = sum(dur_hr)/float(len(dur_hr))
-                    if round( (lm_time*100%100) / 50.0) == 0:
-                        lm_time = round(lm_time)
-                    elif round( (lm_time*100%100) / 50.0) == 1:
-                        lm_time = round(lm_time) + 0.5
-                    elif round( (lm_time*100%100) / 50.0) == 2:
-                        lm_time = round(lm_time) + 1
-                    print lm_time
-                list_time[i] = lm_time
-            
-                # 1. popularity
-                pop = len(landmark) 
-                print pop
-                list_lm[i] = pop
+            if len(list_time) == 0:
+                find_lm_time(points, users)
+
+            if len(landmark) > 20:
 
                 # 2. rate of similar people visiting lm
                 n = 100
@@ -501,44 +398,116 @@ def find_landmark_score(points, somePoints, users, user_topic, doc_topic, load_b
                     if user[0] in landmark_users:
                         c += 1
                 sim = c
-                print sim
+                # print sim
                 list_sim[i] = sim
 
                 # 3. user-landmark score
                 ulm = np.dot(topic_row, doc_topic[lmId]) #similarity between user and landmark
-                print ulm
+                # print ulm
                 list_ulm[i] = ulm
+
+        list_sim = (list_sim-np.min(list_sim)+1) / float(np.max(list_sim)-np.min(list_sim))
+        list_ulm = (list_ulm-np.min(list_ulm)) / (np.max(list_ulm)-np.min(list_ulm))
+
+        # drawGmap.plotHist(list_sim, 2)
+        list_sim = np.array([math.log(float(x)) for x in list_sim])
+        # drawGmap.plotHist(list_sim, 2)
+
+        list_sim = (list_sim-np.min(list_sim)) / float(np.max(list_sim)-np.min(list_sim))
+
+        print 'mean of lm, sim, ulm'
+        print np.mean(list_pop)
+        print np.mean(list_sim)
+        print np.mean(list_ulm)
 
         for i, lmId in enumerate(landmarks):
             the_lm = points[:,-1] == lmId
             landmark = points[the_lm]
 
             if len(landmark) > 20:
-
-                list_lm = list_lm / np.max(list_lm)
-                list_sim = list_sim / np.max(list_sim)
-                if (np.max(list_ulm)-np.min(list_ulm))>0:
-                    list_ulm = (list_ulm-np.min(list_ulm)) / (np.max(list_ulm)-np.min(list_ulm))
-                elif np.max(list_ulm)>0:
-                    list_ulm = list_ulm / np.max(list_ulm)
-
                 # 4. total
-                #score = (pop * sim * ulm) ** (1/float(3))
-                score = popImp*list_lm[i] + simImp*list_sim[i] + ulmImp*list_ulm[i]
-                print 'score: '+str(score)+'\n'
+                score = popImp*list_pop[i] + simImp*list_sim[i] + ulmImp*list_ulm[i]
 
                 lm_score.append([lmId, list_time[i], score])
-                
-        lm_score_sort = np.array(sorted(lm_score, key=itemgetter(2,1) ))
+                    
+        lm_score = np.array(sorted(lm_score, key=itemgetter(2,1) ))
 
-
-        if load_by_file:
+        if load_by_file and not spe_clus:
             f = open(fileName,'w')
-            for lm, time, score in lm_score_sort:
+            for lm, time, score in lm_score:
                 f.write(str(lm)+' '+str(time)+' '+str(score)+'\n')
             f.close()
 
-        return lm_score_sort
+        return lm_score
+
+
+def find_pop(points):
+    global list_pop
+    
+    the_lms = points[:,-2] < 30
+    landmarks = points[the_lms,-1]
+    landmarks = np.unique(landmarks)
+    list_pop = [0]*len(landmarks)
+
+    for i, lmId in enumerate(landmarks):
+        the_lm = points[:,-1] == lmId
+        landmark = points[the_lm]
+
+        if len(landmark) > 20:
+            # 1. popularity
+            pop = len(landmark) 
+            # print pop
+            list_pop[i] = pop
+
+    list_pop = (list_pop-np.min(list_pop)+1) / float(np.max(list_pop)-np.min(list_pop))
+    # drawGmap.plotHist(list_pop, 1)
+    list_pop = np.array([math.log(float(x)) for x in list_pop])
+    # drawGmap.plotHist(list_pop, 1)
+    list_pop = (list_pop-np.min(list_pop)) / float(np.max(list_pop)-np.min(list_pop))
+
+
+def find_lm_time(points, users):
+    global list_time
+
+    the_lms = points[:,-2] < 30
+    landmarks = points[the_lms,-1]
+    landmarks = np.unique(landmarks)
+
+    list_time = [0]*len(landmarks)
+
+    for i, lmId in enumerate(landmarks):
+        the_lm = points[:,-1] == lmId
+        landmark = points[the_lm]
+
+        #avg time of landmark
+        dur_hr = []
+        for user in points[the_lm, 1]:
+            if user in users:
+                user_points = points[the_lm,1] == user
+               
+                #for all points of the user, sort by time(index 2-7)
+                tsorted = np.array(sorted((points[the_lm])[user_points], key=itemgetter(2,3,4,5,6,7)))
+                
+                #dates of all posts of user
+                datesToPier = np.vstack({tuple(row) for row in tsorted[:,2:5]})#remove duplicate date
+                for date in datesToPier:
+                    
+                    #locations of the user visited in this date(boolean list)
+                    same_date = tsorted[:,2:5] == date
+                    sd = []
+                    for d in same_date:
+                        sd.append(d.all())
+                    same_date = np.array(sd, dtype=bool)
+                    
+                    #add time difference of this day
+                    hr2 = (tsorted[same_date])[-1][5] + (tsorted[same_date])[-1][6]/60.0 #last time of post today
+                    hr1 = (tsorted[same_date])[0][5] + (tsorted[same_date])[0][6]/60.0 #first time of post today
+                    dur_hr.append(hr2 - hr1)
+        
+        if len(dur_hr)>0:
+            lm_time = sum(dur_hr)/float(len(dur_hr))
+        list_time[i] = lm_time
+        
 
 
 """KL divergence of specific hr"""
