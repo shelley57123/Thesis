@@ -2,6 +2,7 @@ import pygmaps
 import webbrowser 
 import scoring as sc
 import matplotlib.pyplot as plt
+from geopy.distance import great_circle
 
 colors = ['#FF0000','#0000FF','#00FF00','#00FFFF','#FFCD00','#FF00FF','#808080','#FFFFFF','#000000']
 
@@ -31,15 +32,17 @@ def drawTopK(topKPath, cluster_centers, cluster_centers2):
 
         for clus, hr, clusScore in route:
             lms = findClusLms(clus, hr)
-            mymap.addpoint(cluster_centers[clus][1], cluster_centers[clus][0], colors[i%colorNum], title = str(clus)+'_clus '+str(hr)+'hr')
+            # mymap.addpoint(cluster_centers[clus][1], cluster_centers[clus][0], colors[i%colorNum], title = str(clus)+'_clus '+str(hr)+'hr')
+            # path.append((cluster_centers[clus][1], cluster_centers[clus][0]))
             for lmId, lm_time, lm_score in lms:
                 lon, lat = findLmLoc(lmId, cluster_centers2)
-                if len(path) == 0:
-                    mymap.addpoint(lat, lon, colors[8], title = str(lmId)+'_lm '+str(lm_time)+'hr')
-                else:
-                    mymap.addpoint(lat, lon, colors[i%colorNum], title = str(lmId)+'_lm '+str(lm_time)+'hr')
-                path.append((lat, lon))
-        mymap.addpoint(lat, lon, colors[7], title = str(lmId)+'_lm '+str(lm_time)+'hr')
+                if lmId != 186 and lmId!= 310:
+                    if len(path) == 0:
+                        mymap.addpoint(lat, lon, colors[8], title = str(lmId)+'_lm '+str(lm_time)+'hr')
+                    else:
+                        mymap.addpoint(lat, lon, colors[i%colorNum], title = str(lmId)+'_lm '+str(lm_time)+'hr')
+                    path.append((lat, lon)) #draw lm paths
+        mymap.addpoint(cluster_centers[clus][1], cluster_centers[clus][0], colors[7], title = str(lmId)+'_lm '+str(lm_time)+'hr')
         mymap.addpath(path, colors[i%colorNum])
         i += 1
 
@@ -70,8 +73,8 @@ def drawTopK_cmp(topKPath, cluster_centers):
     for route, timeLen, score in topKPath:
         path = []
 
-        mymap.addpoint(cluster_centers[sc.startLm][1], cluster_centers[sc.startLm][0], colors[8], title = str(sc.startLm)+'_clus ')
-        path.append((cluster_centers[sc.startLm][1], cluster_centers[sc.startLm][0]))
+        # mymap.addpoint(cluster_centers[sc.startLm][1], cluster_centers[sc.startLm][0], colors[8], title = str(sc.startLm)+'_clus ')
+        # path.append((cluster_centers[sc.startLm][1], cluster_centers[sc.startLm][0]))
 
         for lmId in route:
             lon, lat = findLmLoc(lmId, cluster_centers)

@@ -88,6 +88,14 @@ user_topic, users, users_pic_num = ldaAdd.userTopic(USER_FILE, points, doc_topic
 
 clus_topic = us.userClus(user_topic, topic_word, dic)
 
+clus_sim = []
+for i in clus_topic:
+	a_clus = []
+	for j in clus_topic:
+		a_clus.append(np.dot(i,j))
+	clus_sim.append(a_clus)
+print clus_sim
+
 # if not (os.path.isfile(ZW_FILE) and os.path.isfile(DZ_FILE)):
 #     plsa_topic_word, plsa_doc_topic = plsaAdd.runPlsa(plsa_m, dic, CLUS_WORD_ZERO_FILE, ZW_FILE, DZ_FILE)
 # else:
@@ -103,8 +111,9 @@ sc.estTransOrder(points, users, cluster_centers)
 for clus in clus_topic:
 	sc.topK = []
 	sc.clus_hr_sort = []
+	sc.list_sim = []
 
-	clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, points, clus)
+	clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, points, clus, '')
 	"""prefixDFS"""
 	sc.prefixDFS(clus_hr_sort, frozenset())
 	print 'TopK'

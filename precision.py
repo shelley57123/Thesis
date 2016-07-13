@@ -4,6 +4,7 @@ import pandas as pd
 import os
 import sys
 from sklearn.cluster import MeanShift
+import random
 
 import string
 import math
@@ -94,11 +95,25 @@ user_topic, plsa_user_topic, users, paths = us.userTopic_minus(USER_FILE, points
 sc.estTransOrder(points, users, cluster_centers)
 
 
+rm_by_clus = points[:,-2] < sc.clus_k
+somepoints = []
+for x in points[rm_by_clus]:
+    if x[1] in users:
+        somepoints.append(x)
+somepoints = np.array(somepoints)
+print 'somepoints:'
+print len(somepoints)
+
+
+random.seed(120)
+# randpaths = random.sample(paths, 400)
+randusers = random.sample(users, 200)
+
 """estimate precision of one extraction"""
 hit = 0
 plsa_hit = 0
 total = 0
-for i, the_user in enumerate(users):
+for i, the_user in enumerate(randusers):
     user_paths = []
     sc.list_sim = []
 
@@ -108,8 +123,8 @@ for i, the_user in enumerate(users):
 
     if len(user_paths) > 0:
         sc.clus_hr_sort = []
-        clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, points, user_topic[i], the_user)
-        lm_score_sort = sc.find_all_lm(points, users, plsa_user_topic, plsa_doc_topic, [], True, the_user)
+        clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, somepoints, user_topic[i], the_user)
+        lm_score_sort = sc.find_all_lm(somepoints, users, plsa_user_topic, plsa_doc_topic, [], True, the_user)
         
         for diffClusIdx, diffLmIdx, path in user_paths:
             pastClus = np.unique(path[:diffClusIdx+1,-2])
@@ -147,21 +162,22 @@ for i, the_user in enumerate(users):
             max_score = 0
             max_lm = -1
             for lm in lm_score_sort[:,0]:
-                thisClus = sc.map_col(points, -1, -2, lm)
+                thisClus = sc.map_col(somepoints, -1, -2, lm)
                 preClus = path[diffLmIdx,-2]
-                if lm not in pastLm and thisClus < sc.clus_k and preClus < sc.clus_k :
-                    
-                    thisLm_score = sc.map_col(lm_score_sort, 0, 2, lm)
-                    thisLm_hrs = sc.map_col(lm_score_sort, 0, 1, lm)
-                    thisClus_hrs = thisLm_hrs
-                    #find real preClus
-                    for i in range(diffClusIdx+1):
-                        if path[-2-i,-2] != thisClus :
-                            preClus = path[-2-i,-2]
-                            break
-                        else:
-                            thisClus_hrs += sc.map_col(lm_score_sort, 0, 1, path[-2-i,-1])
+
+                thisLm_score = sc.map_col(lm_score_sort, 0, 2, lm)
+                thisLm_hrs = sc.map_col(lm_score_sort, 0, 1, lm)
+                thisClus_hrs = thisLm_hrs
+                #find real preClus
+                for j in range(diffClusIdx+1):
+                    if path[-2-j,-2] != thisClus :
+                        preClus = path[-2-j,-2]
+                        break
+                    else:
+                        thisClus_hrs += sc.map_col(lm_score_sort, 0, 1, path[-2-j,-1])
                     thisClus_hrs = round(thisClus_hrs)
+
+                if lm not in pastLm and thisClus < sc.clus_k and preClus < sc.clus_k :
 
                     m = sc.map_col(sc.clus_hrs_dist, 0, 1, thisClus)
                     std = sc.map_col(sc.clus_hrs_dist, 0, 2, thisClus)

@@ -113,8 +113,26 @@ randpoints = np.array(randpoints)
 clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, randpoints, [], users[sc.User])
 lm_score_sort = sc.find_all_lm(randpoints, users, plsa_user_topic, plsa_doc_topic, [], True, users[sc.User])
 
+"""only use specific clusters"""
+# spe_clus = [0,1,4]
+# new_clus_hr = []
+# for clus, hr, score, lms in clus_hr_sort:
+#     if clus in spe_clus:
+#         new_clus_hr.append([clus, hr, score, lms])
+# sc.clus_hr_sort = new_clus_hr
+
+"""different starting time"""
+sc.haveStartClus = True
+T0_hr = [[9,4], [13,4], [18,4]]
+for T0, hour in T0_hr:
+    sc.T0 = T0
+    sc.hour = hour
+    sc.prefixDFS(sc.clus_hr_sort, frozenset())
+
+    drawGmap.drawTopK(sc.topK, cluster_centers, cluster_centers2)
+
 # """prefixDFS"""
-# sc.prefixDFS(clus_hr_sort, frozenset())
+# sc.prefixDFS(sc.clus_hr_sort, frozenset())
 # print 'TopK'
 # print sc.topK
 
@@ -125,6 +143,15 @@ lm_score_sort = sc.find_all_lm(randpoints, users, plsa_user_topic, plsa_doc_topi
 
 # drawGmap.drawTopK(sc.topK, cluster_centers, cluster_centers2)
 # drawGmap.drawTopK_cmp(topK_cmp, cluster_centers2)
+
+
+"""draw specific single route"""
+# drawGmap.drawTopK([sc.topK[2]], cluster_centers, cluster_centers2)
+# drawGmap.drawTopK_cmp([topK_cmp[1]], cluster_centers2)
+
+# drawGmap.drawTopK_cmp([[[2, 1, 19, 57, 61, 7, 41, 56], 8., 1.1]], cluster_centers2)
+# drawGmap.drawTopK_cmp([[[5, 15, 16, 9, 37], 8., 1.1]], cluster_centers2)
+# drawGmap.drawTopK_cmp([[[5, 16, 83, 69, 92, 9, 68, 37, 30], 8., 1.1]], cluster_centers2)
 
 
 """Average score with different K"""
@@ -138,31 +165,30 @@ lm_score_sort = sc.find_all_lm(randpoints, users, plsa_user_topic, plsa_doc_topi
 
 
 """Average score with different hour"""
-for i in range(14,21):
-	if i%2 == 0:
+# for i in range(3,25):
 
-		avg_f = open(AVG_HR_FILE,'a')
+# 	avg_f = open(AVG_HR_FILE,'a')
 
-		sc.hour = i
-		"""prefixDFS"""
-		sc.topK = []
-		if i <= 9:
-			sc.prefixDFS(clus_hr_sort, frozenset())
-		else:
-			sc.prefixDFS(clus_hr_sort[:35], frozenset())
-		print 'TopK'
-		print sc.topK
-		avg_f.write(str(i)+' '+str(sc.topK_avg_score(sc.topK, 0))+' ' )
+# 	sc.hour = i
+# 	"""prefixDFS"""
+# 	sc.topK = []
+# 	if i <= 9:
+# 		sc.prefixDFS(clus_hr_sort, frozenset())
+# 	else:
+# 		sc.prefixDFS(clus_hr_sort[:35], frozenset())
+# 	print 'TopK'
+# 	print sc.topK
+# 	avg_f.write(str(i)+' '+str(sc.topK_avg_score(sc.topK, 0))+' ' )
 
-		sc.hour = i
-		"""cmp Alg"""
-		sc.topK_cmp = []
-		topK_cmp = sc.cmp_method_generate_route(1, lm_score_sort, points) #d, e, lm_score_sort, points
-		print 'TopK_cmp'
-		print topK_cmp
-		avg_f.write(str(sc.topK_avg_score(topK_cmp, 1))+'\n' )
+# 	sc.hour = i
+# 	"""cmp Alg"""
+# 	sc.topK_cmp = []
+# 	topK_cmp = sc.cmp_method_generate_route(1, lm_score_sort, points) #d, e, lm_score_sort, points
+# 	print 'TopK_cmp'
+# 	print topK_cmp
+# 	avg_f.write(str(sc.topK_avg_score(topK_cmp, 1))+'\n' )
 
-		avg_f.close()
+# 	avg_f.close()
 
 print '============End Time============'
 print time.strftime('%Y-%m-%d %A %X',time.localtime(time.time())) 

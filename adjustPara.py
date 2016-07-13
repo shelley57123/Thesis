@@ -4,6 +4,7 @@ import pandas as pd
 import os
 import sys
 from sklearn.cluster import MeanShift
+import random
 
 import string
 import math
@@ -87,6 +88,21 @@ user_topic, users, users_pic_num = ldaAdd.userTopic(USER_FILE, points, doc_topic
 """trans/clus time, order score"""
 sc.estTransOrder(points, users, cluster_centers)
 
+rm_by_clus = points[:,-2] < sc.clus_k
+somepoints = []
+for x in points[rm_by_clus]:
+	if x[1] in users:
+		somepoints.append(x)
+somepoints = np.array(somepoints)
+print 'somepoints:'
+print len(somepoints)
+
+random.seed(100)
+randpoints = random.sample(somepoints, 15000)
+randpoints = np.array(randpoints)
+print 'randpoints:'
+print len(randpoints)
+
 """adjust weight between 3 parameter"""
 for j in range(1,10):
 	for i in range(1,11-j):
@@ -99,7 +115,7 @@ for j in range(1,10):
 			sc.ulmImp = 0.0
 		print sc.popImp, sc.simImp, sc.ulmImp
 
-		clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, points, [], users[sc.User])
+		clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, randpoints, [], users[sc.User])
 
 		sc.topK = []
 		sc.clus_hr_sort = []

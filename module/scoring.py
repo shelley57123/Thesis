@@ -6,15 +6,15 @@ from geopy.distance import great_circle
 import drawGmap
 from sklearn.decomposition import nmf
 
-numK = 20
+numK = 3
 topK = []
 hashmap = {}
-hour = 8 #time for trip
+hour = 5 #time for trip
 T0 = 8 #default starting time
 
 topK_cmp = []
 
-User = 672/2 + 1
+User = 672/2
 
 startClus = 3
 startLm = 5
@@ -23,8 +23,10 @@ haveStartClus = True
 clus_k = 30
 
 popImp = 0.5
-simImp = 0.2
-ulmImp = 0.3
+simImp = 0.1
+ulmImp = 0.4
+
+userClusNum = 15
 
 noSeq = False
 noTime = False
@@ -344,12 +346,12 @@ def find_all_lm(points, users, user_topic, doc_topic, spe_topic_vec, load_by_fil
     if not spe_clus and load_by_file and os.path.isfile(fileName):
         lm_score_sort = []
 
-        f = open(fileName,'r')
-        for line in f.readlines():
-            lm, time, score = line.split()
-            lm_score_sort.append([float(lm), float(time), float(score)])
-        print 'load lm_score '
-        return np.array(lm_score_sort)
+        # f = open(fileName,'r')
+        # for line in f.readlines():
+        #     lm, time, score = line.split()
+        #     lm_score_sort.append([float(lm), float(time), float(score)])
+        # print 'load lm_score '
+        # return np.array(lm_score_sort)
 
     else:
 
@@ -411,15 +413,20 @@ def find_all_lm(points, users, user_topic, doc_topic, spe_topic_vec, load_by_fil
 
         # drawGmap.plotHist(list_sim, 2)
         list_sim = np.array([math.log(float(x)) for x in list_sim])
-        # drawGmap.plotHist(list_sim, 2)
 
         list_sim = (list_sim-np.min(list_sim)) / float(np.max(list_sim)-np.min(list_sim))
+
+        list_ulm = list_ulm * 1.5
 
         print 'mean of lm, sim, ulm'
         print np.mean(list_pop)
         print np.mean(list_sim)
         print np.mean(list_ulm)
 
+        # drawGmap.plotHist(list_pop, 1)
+        # drawGmap.plotHist(list_sim, 2)
+        # drawGmap.plotHist(list_ulm, 3)
+        
         for i, lmId in enumerate(landmarks):
             the_lm = points[:,-1] == lmId
             landmark = points[the_lm]
@@ -432,11 +439,11 @@ def find_all_lm(points, users, user_topic, doc_topic, spe_topic_vec, load_by_fil
                     
         lm_score = np.array(sorted(lm_score, key=itemgetter(2,1) ))
 
-        if load_by_file and not spe_clus:
-            f = open(fileName,'w')
-            for lm, time, score in lm_score:
-                f.write(str(lm)+' '+str(time)+' '+str(score)+'\n')
-            f.close()
+        # if load_by_file and not spe_clus:
+        #     f = open(fileName,'w')
+        #     for lm, time, score in lm_score:
+        #         f.write(str(lm)+' '+str(time)+' '+str(score)+'\n')
+        #     f.close()
 
         return lm_score
 
@@ -444,7 +451,7 @@ def find_all_lm(points, users, user_topic, doc_topic, spe_topic_vec, load_by_fil
 def find_pop(points):
     global list_pop
     
-    the_lms = points[:,-2] < 30
+    the_lms = points[:,-2] < clus_k
     landmarks = points[the_lms,-1]
     landmarks = np.unique(landmarks)
     list_pop = [0]*len(landmarks)
@@ -469,7 +476,7 @@ def find_pop(points):
 def find_lm_time(points, users):
     global list_time
 
-    the_lms = points[:,-2] < 30
+    the_lms = points[:,-2] < clus_k
     landmarks = points[the_lms,-1]
     landmarks = np.unique(landmarks)
 
@@ -597,7 +604,7 @@ def prefixDFS(U,K):
                     if noTime:
                         clusTime = 1
                     else:
-                        clusTime = clus_time[thisClus][ktime]
+                        clusTime = clus_time[thisClus][ktime%24]
                     kscore = thisScore * cond * clusTime
                 else:
                     timeLen = thisHr
@@ -606,14 +613,14 @@ def prefixDFS(U,K):
                     if noTime:
                         clusTime = 1
                     else:
-                        clusTime = clus_time[thisClus][ktime]
+                        clusTime = clus_time[thisClus][ktime%24]
 
                     kscore = thisScore * clusTime
 
                 if timeLen <= hour:
                     #keepRoute: pruning some routes that is impossible to become topK
                     #if (not haveK) or (haveK and keepRoute)
-                    if not (haveK and not keepRoute(kscore, [ [thisClus, thisHr, thisScore] ], timeLen, topK[-1][0]) ):
+                    if not (haveK and not keepRoute(kscore, [ [thisClus, thisHr, thisScore] ], timeLen, topK[-1][0], clus_hr_sort)):
                         #list of route(score, list of clus_hr_score with order, time of this order)
                         hashmap[K_plus] = [ [ kscore, [ [ thisClus, thisHr, thisScore ] ], timeLen ] ]
 
@@ -662,7 +669,7 @@ def prefixDFS(U,K):
                                 if noTime:
                                     clusTime = 1
                                 else:
-                                    clusTime = clus_time[kClus][ktime]
+                                    clusTime = clus_time[kClus][ktime%24]
                                 #original score + score of new clus (consider score of order and visiting hr)
                                 newkScore = kScore * cond * clusTime
                                 score = oldScore + newkScore
