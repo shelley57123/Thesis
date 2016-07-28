@@ -33,8 +33,6 @@ CLUS_WORD_ZERO_FILE = './data/ldac_zero.txt'
 USER_FILE = './data/user 30.txt'
 ZW_FILE = './data/plsaZW.txt'
 DZ_FILE = './data/plsaDZ.txt'
-AVG_K_FILE = './data/avg_k.txt'
-AVG_HR_FILE = './data/avg_hr.txt'
 
 # def main():
 print '===========Start Time==========='
@@ -106,6 +104,27 @@ print clus_sim
 """trans/clus time, order score"""
 sc.estTransOrder(points, users, cluster_centers)
 
+rm_by_clus = points[:,-2] < sc.clus_k
+somepoints = []
+for x in points[rm_by_clus]:
+	if x[1] in users:
+		somepoints.append(x)
+somepoints = np.array(somepoints)
+print 'somepoints:'
+print len(somepoints)
+
+random.seed(100)
+randpoints = random.sample(somepoints, 15000)
+randpoints = np.array(randpoints)
+print 'randpoints:'
+print len(randpoints)
+
+trainpoints = []
+for x in somepoints:
+	if x not in randpoints:
+		trainpoints.append(x)
+trainpoints = np.array(trainpoints)
+
 
 """find top k path for each clus"""
 for clus in clus_topic:
@@ -113,7 +132,7 @@ for clus in clus_topic:
 	sc.clus_hr_sort = []
 	sc.list_sim = []
 
-	clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, points, clus, '')
+	clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, trainpoints, clus, '')
 	"""prefixDFS"""
 	sc.prefixDFS(clus_hr_sort, frozenset())
 	print 'TopK'

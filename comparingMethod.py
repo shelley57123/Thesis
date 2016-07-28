@@ -81,7 +81,7 @@ user_topic, users, users_pic_num = ldaAdd.userTopic(USER_FILE, points, doc_topic
 labels, cluster_centers2, n_clusters_, ms = msAdd.ms1st(0.015, loc)
 sc.estTransOrder(points, users, cluster_centers2)
 
-lm_score_sort = sc.find_landmark_score(points, points, users, user_topic, doc_topic, True, [])
+lm_score_sort = sc.find_landmark_score(points, users, user_topic, doc_topic, [], True, users[sc.User])
 
 topK_cmp = sc.cmp_method_generate_route(8, 1, lm_score_sort, points) #K, d, e, lm_score_sort, points
 print 'TopK'

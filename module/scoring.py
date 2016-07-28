@@ -14,7 +14,7 @@ T0 = 8 #default starting time
 
 topK_cmp = []
 
-User = 672/2
+User = 672/2 + 1 #a specific user in 672 users
 
 startClus = 3
 startLm = 5
@@ -696,6 +696,132 @@ def prefixDFS(U,K):
 
             if hashmap.has_key(K_plus):
                 prefixDFS(pre, K_plus)
+
+
+def prefixDFS_noPruning(U,K):
+
+    global topK
+    global trans_hr
+    global clus_time
+    global clus_order
+    haveK = False
+
+    for i, clus_hr in enumerate(U):
+
+        pre = U[0:i]
+        Klist = np.array([list(x) for x in list(K)])
+
+        thisClus, thisHr, thisScore = (clus_hr[0], clus_hr[1], clus_hr[2])
+
+        K_plus = frozenset([(thisClus, thisHr, thisScore)]) | K
+        #print K_plus
+
+        if len(K) == 0: 
+            if thisClus < clus_k and startClus != thisClus:
+
+
+                if haveStartClus:
+                    timeLen = trans_hr[startClus][thisClus] + thisHr
+                    #take the middle of visit as visiting hr (14:30 is credited to 14:00) rather than start time
+                    ktime = T0 + trans_hr[startClus][thisClus] + math.floor(thisHr/2.0)
+                    # print 'ktime '+str(ktime)
+                    if noSeq:
+                        cond = 1
+                    else:
+                        cond = clus_order[startClus][thisClus]
+                    if noTime:
+                        clusTime = 1
+                    else:
+                        clusTime = clus_time[thisClus][ktime%24]
+                    kscore = thisScore * cond * clusTime
+                else:
+                    timeLen = thisHr
+                    ktime = T0 + math.floor(thisHr/2.0)
+
+                    if noTime:
+                        clusTime = 1
+                    else:
+                        clusTime = clus_time[thisClus][ktime%24]
+
+                    kscore = thisScore * clusTime
+
+                if timeLen <= hour:
+                    #keepRoute: pruning some routes that is impossible to become topK
+                    #if (not haveK) or (haveK and keepRoute)
+                    if not (haveK):
+                        #list of route(score, list of clus_hr_score with order, time of this order)
+                        hashmap[K_plus] = [ [ kscore, [ [ thisClus, thisHr, thisScore ] ], timeLen ] ]
+
+                    #if this route is long enough
+                    if timeLen >= 0.9*hour:
+                        topK.append([ kscore, [ [ thisClus, thisHr, thisScore ] ], timeLen ])
+                        topK = sorted(topK, key=itemgetter(0),reverse=True )
+                        if len(topK) == numK:
+                            haveK = True
+                        #only pick k routes with higher score 
+                        topK = topK[:numK]
+
+                    print str(i)+'_1st recursive'
+                    prefixDFS(pre, K_plus)
+
+        #prevent circumstances of clus has been chosen
+        elif (thisClus not in Klist[:,0]):
+
+            for k in K_plus:
+                K_minus = K_plus - frozenset([k])
+                
+                if hashmap.has_key(K_minus):
+
+                    for oldScore, oldRoute, oldTime in hashmap.get(K_minus):
+
+                        preClus = (oldRoute)[-1][0]
+                        kClus = k[0]
+                        kHr = k[1]
+                        kScore = k[2]
+
+                        if preClus<clus_k and kClus<clus_k:
+
+                            trans = trans_hr[ preClus ][ kClus ]
+                            #total time of K_minus + time of visiting k + trans time from last clus to k clus
+                            timeLen = oldTime + trans + kHr
+                            
+                            if (timeLen <= hour):
+                                #take the middle of visit as visiting hr
+                                ktime = T0 + oldTime + trans + math.floor(kHr/2.0)
+
+                                if noSeq:
+                                    cond = 1
+                                else:
+                                    cond = clus_order[preClus][kClus]
+                                if noTime:
+                                    clusTime = 1
+                                else:
+                                    clusTime = clus_time[kClus][ktime%24]
+                                #original score + score of new clus (consider score of order and visiting hr)
+                                newkScore = kScore * cond * clusTime
+                                score = oldScore + newkScore
+
+                                newRoute = list(oldRoute)
+                                newRoute.append([ kClus, kHr, kScore ])
+
+                                if hashmap.has_key(K_plus):
+                                    if not (haveK):
+                                        hashmap.get(K_plus).append([ score, newRoute, timeLen ])
+                                else:
+                                    if not (haveK):
+                                        hashmap[K_plus] = [ [ score, newRoute, timeLen ]  ]
+
+                                #consider transit time
+                                if timeLen >= 0.9*hour:
+                                    topK.append([ score, newRoute, timeLen ])
+
+                                    if len(topK) == numK:
+                                        haveK = True
+                                    #only pick k routes with higher score 
+                                    topK = sorted(topK, key=itemgetter(0),reverse=True )[:numK]
+
+            if hashmap.has_key(K_plus):
+                prefixDFS(pre, K_plus)              
 
 
 def cleanHashmap(leastScore, clus_hr_sort):

@@ -10,7 +10,7 @@ import string
 import math
 from sets import Set
 
-# from operator import itemgetter
+from operator import itemgetter
 
 DIR = os.getcwd()
 PAR_DIR = os.path.abspath('..')
@@ -33,14 +33,15 @@ CLUS_WORD_ZERO_FILE = './data/ldac_zero.txt'
 USER_FILE = './data/user 30.txt'
 ZW_FILE = './data/plsaZW.txt'
 DZ_FILE = './data/plsaDZ.txt'
-AVG_K_FILE = './data/results/avg_k.txt'
-AVG_HR_FILE = './data/results/avg_hr.txt'
-PARA_FILE = './data/results/para.txt'
+AVG_K_FILE = './data/avg_k.txt'
+AVG_HR_FILE = './data/avg_hr.txt'
+PARA_FILE = './data/para.txt'
 
 # def main():
 print '===========Start Time==========='
 print time.strftime('%Y-%m-%d %A %X',time.localtime(time.time())) 
 print '================================'
+
 
 readFile = pd.read_csv(FILE, iterator=True, chunksize=1000, na_values = '')
 points = pd.concat(readFile, ignore_index=True)
@@ -75,18 +76,16 @@ for i in range(len(points)):
 clus_num = n_clusters_2
 
 
-"""load matrix"""
-if not os.path.isfile(CLUS_WORD_FILE):
-	lda_m = ldaAdd.saveLda(clus_num, dic, points, CLUS_WORD_FILE, CLUS_WORD_ZERO_FILE)
-else:
-	lda_m = ldaAdd.readLda(CLUS_WORD_FILE, CLUS_WORD_ZERO_FILE)
-
-"""run lda"""
-topic_word, doc_topic = ldaAdd.runLda(lda_m, dic)
-user_topic, users, users_pic_num = ldaAdd.userTopic(USER_FILE, points, doc_topic)
-
-"""trans/clus time, order score"""
-sc.estTransOrder(points, users, cluster_centers)
+uall = open(USER_FILE,'r')
+ucount = 0
+user_topic = []
+users = []
+t = 0
+for line in uall.readlines():
+    ucount += 1
+    ls = line.split()
+    if len(ls)>=1 and ls[0]!='':
+        users.append(ls[0])
 
 rm_by_clus = points[:,-2] < sc.clus_k
 somepoints = []
@@ -97,41 +96,33 @@ somepoints = np.array(somepoints)
 print 'somepoints:'
 print len(somepoints)
 
-random.seed(100)
-randpoints = random.sample(somepoints, 15000)
-randpoints = np.array(randpoints)
-print 'randpoints:'
-print len(randpoints)
 
-"""adjust weight between 3 parameter"""
-for j in range(1,10):
-	for i in range(1,11-j):
-		para = open(PARA_FILE,'a')
+n = 0
+for user in users:
+    user_points = points[:,1] == user
+   
+    #for all points of the user, sort by time(index 2-7)
+    tsorted = np.array(sorted(points[user_points], key=itemgetter(2,3,4,5,6,7)))
 
-		sc.popImp = i*0.1
-		sc.simImp = j*0.1
-		sc.ulmImp = 1.0 - sc.popImp - sc.simImp
-		if sc.ulmImp < 0.05:
-			sc.ulmImp = 0.0
-		print sc.popImp, sc.simImp, sc.ulmImp
+    if len(tsorted)>0:
 
-		clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, randpoints, [], users[sc.User])
+        #dates of all posts of user
+        datesToClus = np.vstack({tuple(row) for row in tsorted[:,2:5]})#remove duplicate date
+        for date in datesToClus:
 
-		sc.topK = []
-		sc.clus_hr_sort = []
-		"""prefixDFS"""
-		sc.prefixDFS(clus_hr_sort, frozenset())
-		print 'TopK'
-		print sc.topK
+            #locations of the user visited in this date(boolean list)
+            same_date = tsorted[:,2:5] == date
+            sd = []
+            for d in same_date:
+                sd.append(d.all())
+            same_date = np.array(sd, dtype=bool)
+            
+            #locations of posts in this date
+            l = len(tsorted[same_date])
+            path = tsorted[same_date]
 
-		para.write(str(sc.popImp)+' '+str(sc.simImp)+' '+str(sc.ulmImp)+' '+str(sc.topK_avg_score(sc.topK, 0))+'\n' )
-		para.close()
+            if l > 5:
+                n += 1
 
-
-print '============End Time============'
-print time.strftime('%Y-%m-%d %A %X',time.localtime(time.time())) 
-print '================================'
-
-
-# if __name__ == '__main__':
-#     main()
+print 'n:'
+print n

@@ -33,9 +33,9 @@ CLUS_WORD_ZERO_FILE = './data/ldac_zero.txt'
 USER_FILE = './data/user 30.txt'
 ZW_FILE = './data/plsaZW.txt'
 DZ_FILE = './data/plsaDZ.txt'
-AVG_K_FILE = './data/avg_k.txt'
-AVG_HR_FILE = './data/avg_hr.txt'
-PARA_FILE = './data/para.txt'
+AVG_K_FILE = './data/results/avg_k.txt'
+AVG_HR_FILE = './data/results/avg_hr.txt'
+PARA_FILE = './data/results/para.txt'
 
 # def main():
 print '===========Start Time==========='
@@ -110,8 +110,8 @@ random.seed(100)
 randpoints = random.sample(somepoints, 15000)
 randpoints = np.array(randpoints)
 
-clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, randpoints, [], users[sc.User])
-lm_score_sort = sc.find_all_lm(randpoints, users, plsa_user_topic, plsa_doc_topic, [], True, users[sc.User])
+clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, somepoints, [], users[sc.User])
+lm_score_sort = sc.find_all_lm(somepoints, users, plsa_user_topic, plsa_doc_topic, [], True, users[sc.User])
 
 """only use specific clusters"""
 # spe_clus = [0,1,4]
@@ -122,21 +122,22 @@ lm_score_sort = sc.find_all_lm(randpoints, users, plsa_user_topic, plsa_doc_topi
 # sc.clus_hr_sort = new_clus_hr
 
 """different starting time"""
-sc.haveStartClus = True
-T0_hr = [[9,4], [13,4], [18,4]]
-for T0, hour in T0_hr:
-    sc.T0 = T0
-    sc.hour = hour
-    sc.prefixDFS(sc.clus_hr_sort, frozenset())
+# sc.haveStartClus = True
+# T0_hr = [[9,4], [13,4], [17,4]]
+# for T0, hour in T0_hr:
+#     sc.T0 = T0
+#     sc.hour = hour
+#     sc.prefixDFS(sc.clus_hr_sort, frozenset())
+#     print sc.topK
 
-    drawGmap.drawTopK(sc.topK, cluster_centers, cluster_centers2)
+#     drawGmap.drawTopK(sc.topK, cluster_centers, cluster_centers2)
 
-# """prefixDFS"""
+"""prefixDFS"""
 # sc.prefixDFS(sc.clus_hr_sort, frozenset())
 # print 'TopK'
 # print sc.topK
 
-# """cmp Alg"""
+"""cmp Alg"""
 # topK_cmp = sc.cmp_method_generate_route(1, lm_score_sort, randpoints) #d, e, lm_score_sort, points
 # print 'TopK_cmp'
 # print topK_cmp
@@ -149,46 +150,18 @@ for T0, hour in T0_hr:
 # drawGmap.drawTopK([sc.topK[2]], cluster_centers, cluster_centers2)
 # drawGmap.drawTopK_cmp([topK_cmp[1]], cluster_centers2)
 
-# drawGmap.drawTopK_cmp([[[2, 1, 19, 57, 61, 7, 41, 56], 8., 1.1]], cluster_centers2)
+# drawGmap.drawTopK_cmp([[[2, 1, 19, 57, 61, 7, 41, 56], 8., 1.1]], cluster_centers2) #our: no round tour
+# drawGmap.drawTopK_cmp([[[2, 61, 41, 7, 57], 8., 1.1]], cluster_centers2) #cmp: round tour
 # drawGmap.drawTopK_cmp([[[5, 15, 16, 9, 37], 8., 1.1]], cluster_centers2)
 # drawGmap.drawTopK_cmp([[[5, 16, 83, 69, 92, 9, 68, 37, 30], 8., 1.1]], cluster_centers2)
 
+# drawGmap.drawTopK_cmp([[[91, 69, 9, 68, 37, 30], 8., 1.1]], cluster_centers2) #user diff: sea
+# drawGmap.drawTopK_cmp([[[2, 1, 19, 8, 24], 8., 1.1]], cluster_centers2) #user diff: square
 
-"""Average score with different K"""
-# avg_f = open(AVG_K_FILE,'w')
-# for i in range(sc.numK):
-#     avg_f.write(str(i+1)+' '+str(sc.topK_avg_score(sc.topK[:i+1], 0))+'\n' )
-# avg_f.write('\n')
-# for i in range(sc.numK):
-#     avg_f.write(str(i+1)+' '+str(sc.topK_avg_score(topK_cmp[:i+1], 1))+'\n' )
-# avg_f.close()
+# drawGmap.drawTopK_cmp([[[5, 15, 64, 69, 92, 27], 8., 1.1]], cluster_centers2) #time diff 9am 4hr
+# drawGmap.drawTopK_cmp([[[5, 46, 28, 24, 19], 8., 1.1]], cluster_centers2)     #time diff 17am 4hr
 
 
-"""Average score with different hour"""
-# for i in range(3,25):
-
-# 	avg_f = open(AVG_HR_FILE,'a')
-
-# 	sc.hour = i
-# 	"""prefixDFS"""
-# 	sc.topK = []
-# 	if i <= 9:
-# 		sc.prefixDFS(clus_hr_sort, frozenset())
-# 	else:
-# 		sc.prefixDFS(clus_hr_sort[:35], frozenset())
-# 	print 'TopK'
-# 	print sc.topK
-# 	avg_f.write(str(i)+' '+str(sc.topK_avg_score(sc.topK, 0))+' ' )
-
-# 	sc.hour = i
-# 	"""cmp Alg"""
-# 	sc.topK_cmp = []
-# 	topK_cmp = sc.cmp_method_generate_route(1, lm_score_sort, points) #d, e, lm_score_sort, points
-# 	print 'TopK_cmp'
-# 	print topK_cmp
-# 	avg_f.write(str(sc.topK_avg_score(topK_cmp, 1))+'\n' )
-
-# 	avg_f.close()
 
 print '============End Time============'
 print time.strftime('%Y-%m-%d %A %X',time.localtime(time.time())) 

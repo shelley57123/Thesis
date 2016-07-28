@@ -32,8 +32,8 @@ def drawTopK(topKPath, cluster_centers, cluster_centers2):
 
         for clus, hr, clusScore in route:
             lms = findClusLms(clus, hr)
-            # mymap.addpoint(cluster_centers[clus][1], cluster_centers[clus][0], colors[i%colorNum], title = str(clus)+'_clus '+str(hr)+'hr')
-            # path.append((cluster_centers[clus][1], cluster_centers[clus][0]))
+            mymap.addpoint(cluster_centers[clus][1], cluster_centers[clus][0], colors[i%colorNum], title = str(clus)+'_clus '+str(hr)+'hr')
+            path.append((cluster_centers[clus][1], cluster_centers[clus][0]))
             for lmId, lm_time, lm_score in lms:
                 lon, lat = findLmLoc(lmId, cluster_centers2)
                 if lmId != 186 and lmId!= 310:
@@ -41,8 +41,9 @@ def drawTopK(topKPath, cluster_centers, cluster_centers2):
                         mymap.addpoint(lat, lon, colors[8], title = str(lmId)+'_lm '+str(lm_time)+'hr')
                     else:
                         mymap.addpoint(lat, lon, colors[i%colorNum], title = str(lmId)+'_lm '+str(lm_time)+'hr')
-                    path.append((lat, lon)) #draw lm paths
-        mymap.addpoint(cluster_centers[clus][1], cluster_centers[clus][0], colors[7], title = str(lmId)+'_lm '+str(lm_time)+'hr')
+                    # path.append((lat, lon)) #draw lm paths
+        mymap.addpoint(cluster_centers[clus][1], cluster_centers[clus][0], colors[7], title = str(clus)+'_clus '+str(hr)+'hr')
+        # mymap.addpoint(lat, lon, colors[7], title = str(lmId)+'_lm '+str(lm_time)+'hr')
         mymap.addpath(path, colors[i%colorNum])
         i += 1
 

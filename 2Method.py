@@ -33,9 +33,9 @@ CLUS_WORD_ZERO_FILE = './data/ldac_zero.txt'
 USER_FILE = './data/user 30.txt'
 ZW_FILE = './data/plsaZW.txt'
 DZ_FILE = './data/plsaDZ.txt'
-AVG_K_FILE = './data/avg_k.txt'
-AVG_HR_FILE = './data/avg_hr.txt'
-PARA_FILE = './data/para.txt'
+AVG_K_FILE = './data/results/avg_k.txt'
+AVG_HR_FILE = './data/results/avg_hr.txt'
+PARA_FILE = './data/results/para.txt'
 
 # def main():
 print '===========Start Time==========='
@@ -110,8 +110,14 @@ random.seed(100)
 randpoints = random.sample(somepoints, 15000)
 randpoints = np.array(randpoints)
 
-clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, randpoints, [], users[sc.User])
-lm_score_sort = sc.find_all_lm(randpoints, users, plsa_user_topic, plsa_doc_topic, [], True, users[sc.User])
+trainpoints = []
+for x in somepoints:
+	if x not in randpoints:
+		trainpoints.append(x)
+trainpoints = np.array(trainpoints)
+
+clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, trainpoints, [], users[sc.User])
+lm_score_sort = sc.find_all_lm(trainpoints, users, plsa_user_topic, plsa_doc_topic, [], True, users[sc.User])
 
 # """prefixDFS"""
 # sc.prefixDFS(clus_hr_sort, frozenset())
@@ -119,7 +125,7 @@ lm_score_sort = sc.find_all_lm(randpoints, users, plsa_user_topic, plsa_doc_topi
 # print sc.topK
 
 # """cmp Alg"""
-# topK_cmp = sc.cmp_method_generate_route(1, lm_score_sort, randpoints) #d, e, lm_score_sort, points
+# topK_cmp = sc.cmp_method_generate_route(1, lm_score_sort, trainpoints) #d, e, lm_score_sort, points
 # print 'TopK_cmp'
 # print topK_cmp
 
