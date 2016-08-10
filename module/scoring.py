@@ -194,13 +194,13 @@ def lmsOfClusHr(users, user_topic, doc_topic, points, spe_topic_vec, user):
         line = f.readline()
         clus_hr_num = int(line.split()[0])
         for i in range(clus_hr_num):
-            clus, hr, score = f.readline().split()
+            clus, hr, score, score_noPop, score_noSim = f.readline().split()
             lms_num = int(f.readline().split()[0])
             lms = []
             for j in range(lms_num):
-                lmId, lm_time, lm_score = f.readline().split()
-                lms.append([int(float(lmId)), float(lm_time), float(lm_score)])
-            clus_hr_sort.append([int(float(clus)), float(hr), float(score), lms])
+                lmId, lm_time, lm_score, lm_pop, lm_sim, lm_ulm = f.readline().split()
+                lms.append([int(float(lmId)), float(lm_time), float(lm_score), float(lm_pop), float(lm_sim), float(lm_ulm)])
+            clus_hr_sort.append([int(float(clus)), float(hr), float(score), lms, float(score_noPop), float(score_noSim)])
         clus_hr_sort = sorted(clus_hr_sort, key=itemgetter(2), reverse = True ) 
         f.close()
 
@@ -226,7 +226,7 @@ def lmsOfClusHr(users, user_topic, doc_topic, points, spe_topic_vec, user):
                 landmark = points[the_lm]
                 if len(landmark) > 20:
                     score = popImp*list_pop[i] + simImp*list_sim[i] + ulmImp*list_ulm[i]
-                    all_lm_score.append([lmId, list_time[i], score])
+                    all_lm_score.append([lmId, list_time[i], score, popImp*list_pop[i], simImp*list_sim[i], ulmImp*list_ulm[i]])
 
         for lid in range(clus_k):
             the_clus = points[:,-2] == lid
@@ -288,9 +288,9 @@ def lmsOfClusHr(users, user_topic, doc_topic, points, spe_topic_vec, user):
                         #choose lm
                         time_left = hr
                         lm_choose = []
-                        for [lmId, lm_time, lm_score] in lm_score_sort:
+                        for [lmId, lm_time, lm_score, lm_pop, lm_sim, lm_ulm] in lm_score_sort:
                             if lm_time <= time_left:
-                                lm_choose.append([lmId, lm_time, lm_score])
+                                lm_choose.append([lmId, lm_time, lm_score, lm_pop, lm_sim, lm_ulm])
                                 time_left -= lm_time
                                 
                         #under this hr, sum of scores of chosen lms
@@ -298,8 +298,10 @@ def lmsOfClusHr(users, user_topic, doc_topic, points, spe_topic_vec, user):
                             lm_choose = np.array(lm_choose)
                             score = sum(lm_choose[:,2])
                             # print 'score'+str(score)
+                            score_noPop = score-sum(lm_choose[:,3])
+                            score_noSim = score-sum(lm_choose[:,4])
                         
-                            clus_hr_lms.append([lid, hr, score/kls, lm_choose])
+                            clus_hr_lms.append([lid, hr, score/kls, lm_choose, score_noPop/kls, score_noSim/kls])
                         # print '\n'
 
         clus_hr_sort = sorted(clus_hr_lms, key=itemgetter(2), reverse = True )
@@ -308,11 +310,11 @@ def lmsOfClusHr(users, user_topic, doc_topic, points, spe_topic_vec, user):
         clus_hr_file = open(fileName,'w')
         clus_hr_file.write(str(len(clus_hr_sort))+'\n')
 
-        for clus, hr, score, lms in clus_hr_sort:
-            clus_hr_file.write(str(clus)+' '+str(hr)+' '+str(score)+'\n')
+        for clus, hr, score, lms, score_noPop, score_noSim in clus_hr_sort:
+            clus_hr_file.write(str(clus)+' '+str(hr)+' '+str(score)+' '+str(score_noPop)+' '+str(score_noSim)+'\n')
             clus_hr_file.write(str(len(lms))+'\n')
-            for lmId, lm_time, lm_score in lms:
-                clus_hr_file.write(str(lmId)+' '+str(lm_time)+' '+str(lm_score)+'\n')
+            for lmId, lm_time, lm_score, lm_pop, lm_sim, lm_ulm in lms:
+                clus_hr_file.write(str(lmId)+' '+str(lm_time)+' '+str(lm_score)+' '+str(lm_pop)+' '+str(lm_sim)+' '+str(lm_ulm)+'\n')
 
         clus_hr_file.close()
 
@@ -351,8 +353,8 @@ def find_all_lm(points, users, user_topic, doc_topic, spe_topic_vec, load_by_fil
 
         f = open(fileName,'r')
         for line in f.readlines():
-            lm, time, score = line.split()
-            lm_score_sort.append([float(lm), float(time), float(score)])
+            lm, time, score, pop, sim, ulm = line.split()
+            lm_score_sort.append([float(lm), float(time), float(score), float(pop), float(sim), float(ulm)])
         print 'load lm_score '
         return np.array(lm_score_sort)
 
@@ -438,14 +440,14 @@ def find_all_lm(points, users, user_topic, doc_topic, spe_topic_vec, load_by_fil
                 # 4. total
                 score = popImp*list_pop[i] + simImp*list_sim[i] + ulmImp*list_ulm[i]
 
-                lm_score.append([lmId, list_time[i], score])
+                lm_score.append([lmId, list_time[i], score, popImp*list_pop[i], simImp*list_sim[i], ulmImp*list_ulm[i]])
                     
         lm_score = np.array(sorted(lm_score, key=itemgetter(2,1) ))
 
         if load_by_file and not spe_clus and mode == 'plsa':
             f = open(fileName,'w')
-            for lm, time, score in lm_score:
-                f.write(str(lm)+' '+str(time)+' '+str(score)+'\n')
+            for lm, time, score, pop, sim, ulm in lm_score:
+                f.write(str(lm)+' '+str(time)+' '+str(score)+' '+str(pop)+' '+str(sim)+' '+str(ulm)+'\n')
             f.close()
 
         return lm_score

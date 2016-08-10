@@ -111,6 +111,9 @@ randusers = random.sample(users, 200)
 
 """estimate precision of one extraction"""
 hit = 0
+hit_pop = 0
+hit_sim = 0
+hit_order = 0
 plsa_hit = 0
 total = 0
 for i, the_user in enumerate(randusers):
@@ -136,9 +139,11 @@ for i, the_user in enumerate(randusers):
             max_score = 0
             # max_clus = -1
             max_K_clus = []
+            max_K_clus_pop = []
+            max_K_clus_sim = []
             max_K_clus_order = []
             for clus_hr in clus_hr_sort:
-                thisClus, thisHr, thisScore = (clus_hr[0], clus_hr[1], clus_hr[2])
+                thisClus, thisHr, thisScore, thisScore_noPop, thisScore_noSim = (clus_hr[0], clus_hr[1], clus_hr[2], clus_hr[4], clus_hr[5])
 
                 if thisClus not in pastClus:
 
@@ -150,14 +155,25 @@ for i, the_user in enumerate(randusers):
                     clusTime = sc.clus_time[thisClus][ktime%24]
 
                     kscore = thisScore * cond * clusTime
-
-                    max_K_clus.append([thisClus, thisScore])
+                    max_K_clus.append([thisClus, kscore])
                     max_K_clus = sorted(max_K_clus, key=itemgetter(1),reverse=True)
                     if len(max_K_clus) > sc.numK:
                         max_K_clus = max_K_clus[:sc.numK]
 
+                    kscore_pop = thisScore_noPop * cond * clusTime
+                    max_K_clus_pop.append([thisClus, kscore_pop])
+                    max_K_clus_pop = sorted(max_K_clus_pop, key=itemgetter(1),reverse=True)
+                    if len(max_K_clus_pop) > sc.numK:
+                        max_K_clus_pop = max_K_clus_pop[:sc.numK]
+
+                    kscore_sim = thisScore_noSim * cond * clusTime
+                    max_K_clus_sim.append([thisClus, kscore_sim])
+                    max_K_clus_sim = sorted(max_K_clus_sim, key=itemgetter(1),reverse=True)
+                    if len(max_K_clus_sim) > sc.numK:
+                        max_K_clus_sim = max_K_clus_sim[:sc.numK]
+
                     kscore_order = thisScore * clusTime
-                    max_K_clus_order.append([thisClus, thisScore])
+                    max_K_clus_order.append([thisClus, kscore_order])
                     max_K_clus_order = sorted(max_K_clus_order, key=itemgetter(1),reverse=True)
                     if len(max_K_clus_order) > sc.numK:
                         max_K_clus_order = max_K_clus_order[:sc.numK]
@@ -166,21 +182,32 @@ for i, the_user in enumerate(randusers):
                     #     max_score = kscore 
             max_K_clus = np.array(max_K_clus)
             K_clus = max_K_clus[:,0]
-
             if path[-1,-2] in K_clus:
-                hit += 1
-                
+                hit += 1 
             print 'Hit, K_clus, Total'
             print hit, K_clus, total
 
+            max_K_clus_pop = np.array(max_K_clus_pop)
+            K_clus_pop = max_K_clus_pop[:,0]
+            if path[-1,-2] in K_clus_pop:
+                hit_pop += 1         
+            print 'Hit_pop, K_clus_pop, Total'
+            print hit_pop, K_clus_pop, total
+
+            max_K_clus_sim = np.array(max_K_clus_sim)
+            K_clus_sim = max_K_clus_sim[:,0]
+            if path[-1,-2] in K_clus_sim:
+                hit_sim += 1         
+            print 'Hit_sim, K_clus_sim, Total'
+            print hit_sim, K_clus_sim, total
+
             max_K_clus_order = np.array(max_K_clus_order)
             K_clus_order = max_K_clus_order[:,0]
-
             if path[-1,-2] in K_clus_order:
-                hit_order += 1
-                
-            print 'Hit_order, Total'
+                hit_order += 1         
+            print 'Hit_order, K_clus_order, Total'
             print hit_order, K_clus_order, total
+
 
             pastLm = np.unique(path[:diffLmIdx+1,-1])
             startLm = path[diffLmIdx,-1]
