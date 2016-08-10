@@ -10,7 +10,7 @@ import string
 import math
 from sets import Set
 
-# from operator import itemgetter
+from operator import itemgetter
 
 DIR = os.getcwd()
 PAR_DIR = os.path.abspath('..')
@@ -123,7 +123,9 @@ for i, the_user in enumerate(randusers):
 
     if len(user_paths) > 0:
         sc.clus_hr_sort = []
+        sc.mode = 'lda'#save only clus_hr_sort
         clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, somepoints, user_topic[i], the_user)
+        sc.mode = 'plsa'#save lm_score
         lm_score_sort = sc.find_all_lm(somepoints, users, plsa_user_topic, plsa_doc_topic, [], True, the_user)
         
         for diffClusIdx, diffLmIdx, path in user_paths:
@@ -132,7 +134,9 @@ for i, the_user in enumerate(randusers):
 
             T0 = path[diffClusIdx,5]+ round(path[diffClusIdx,6]/60.0)
             max_score = 0
-            max_clus = -1
+            # max_clus = -1
+            max_K_clus = []
+            max_K_clus_order = []
             for clus_hr in clus_hr_sort:
                 thisClus, thisHr, thisScore = (clus_hr[0], clus_hr[1], clus_hr[2])
 
@@ -146,21 +150,44 @@ for i, the_user in enumerate(randusers):
                     clusTime = sc.clus_time[thisClus][ktime%24]
 
                     kscore = thisScore * cond * clusTime
-                    if kscore > max_score:
-                        max_clus = thisClus
-                        max_score = kscore 
 
-            if max_clus == path[-1,-2]:
+                    max_K_clus.append([thisClus, thisScore])
+                    max_K_clus = sorted(max_K_clus, key=itemgetter(1),reverse=True)
+                    if len(max_K_clus) > sc.numK:
+                        max_K_clus = max_K_clus[:sc.numK]
+
+                    kscore_order = thisScore * clusTime
+                    max_K_clus_order.append([thisClus, thisScore])
+                    max_K_clus_order = sorted(max_K_clus_order, key=itemgetter(1),reverse=True)
+                    if len(max_K_clus_order) > sc.numK:
+                        max_K_clus_order = max_K_clus_order[:sc.numK]
+                    # if kscore > max_score:
+                    #     max_clus = thisClus
+                    #     max_score = kscore 
+            max_K_clus = np.array(max_K_clus)
+            K_clus = max_K_clus[:,0]
+
+            if path[-1,-2] in K_clus:
                 hit += 1
                 
-            print 'Hit, Total'
-            print hit, total
+            print 'Hit, K_clus, Total'
+            print hit, K_clus, total
+
+            max_K_clus_order = np.array(max_K_clus_order)
+            K_clus_order = max_K_clus_order[:,0]
+
+            if path[-1,-2] in K_clus_order:
+                hit_order += 1
+                
+            print 'Hit_order, Total'
+            print hit_order, K_clus_order, total
 
             pastLm = np.unique(path[:diffLmIdx+1,-1])
             startLm = path[diffLmIdx,-1]
             T02 = path[diffLmIdx,5]+ round(path[diffLmIdx,6]/60.0)
             max_score = 0
-            max_lm = -1
+            # max_lm = -1
+            max_K_lm = []
             for lm in lm_score_sort[:,0]:
                 thisClus = sc.map_col(somepoints, -1, -2, lm)
                 preClus = path[diffLmIdx,-2]
@@ -187,22 +214,32 @@ for i, the_user in enumerate(randusers):
 
                     if preClus != thisClus:
                         ktime = round( T02 + sc.trans_hr[preClus][thisClus] + thisLm_hrs/2 )
-                        newScore = thisLm_score* kls* \
+                        newScore = thisLm_score/ kls* \
                                     sc.clus_order[preClus][thisClus]* sc.clus_time[thisClus][ktime%24]
                     else:
                         ktime = round( T02 + thisLm_hrs/2 )
-                        newScore = thisLm_score* kls* sc.clus_time[thisClus][ktime%24]
+                        newScore = thisLm_score/ kls* sc.clus_time[thisClus][ktime%24]
 
-                    if newScore > max_score:
-                        max_lm = lm
-                        max_score = newScore
 
-            if max_lm == path[-1,-1]:
+                    max_K_lm.append([thisClus, newScore])
+                    max_K_lm = sorted(max_K_lm, key=itemgetter(1),reverse=True )
+                    if len(max_K_lm) > sc.numK:
+                        max_K_lm = max_K_lm[:sc.numK]
+
+                    # if newScore > max_score:
+                    #     max_lm = lm
+                    #     max_score = newScore
+
+            max_K_lm = np.array(max_K_lm)
+            if len(max_K_lm)>0:
+                K_lm = max_K_lm[:,0]
+
+            if path[-1,-1] in K_lm:
                 plsa_hit += 1
             total += 1
 
             print 'path, predict_clus, user, #userpaths, paths'
-            print path, max_clus, i, len(user_paths), len(paths)
+            print path, max_K_clus, i, len(user_paths), len(paths)
             print 'Hit, Total, Precision:'
             print hit, total, hit/float(total)
             print 'Plsa Hit, Precision:'

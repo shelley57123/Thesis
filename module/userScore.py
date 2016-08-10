@@ -135,10 +135,10 @@ def userTopic_minus(USER_FILE, points, doc_topic, plsa_doc_topic):
                         n += 1
                         n2 += 1
 
-        print 'n:'
-        print n
-        print 'n2:'
-        print n2
+        # print 'n:'
+        # print n
+        # print 'n2:'
+        # print n2
 
         person_vec =  person_vec / float(n)
         user_topic.append(person_vec)

@@ -102,8 +102,8 @@ randpoints = np.array(randpoints)
 
 trainpoints = []
 for x in somepoints:
-    if x not in randpoints:
-        trainpoints.append(x)
+	if x[0] not in randpoints[:,0]:
+		trainpoints.append(x)
 trainpoints = np.array(trainpoints)
 
 clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, trainpoints, [], users[sc.User])
@@ -129,7 +129,7 @@ for i in range(5,11):
 	f = open(RUNT_FILE,'a')
 	sc.hour = i
 	sc.topK = []
-	sc.hashmap = {}
+	# sc.hashmap = {}
 	start = time.time()
 	sc.prefixDFS_noPruning(clus_hr_sort, frozenset())
 	end = time.time()

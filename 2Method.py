@@ -112,7 +112,7 @@ randpoints = np.array(randpoints)
 
 trainpoints = []
 for x in somepoints:
-	if x not in randpoints:
+	if x[0] not in randpoints[:,0]:
 		trainpoints.append(x)
 trainpoints = np.array(trainpoints)
 
@@ -144,7 +144,7 @@ lm_score_sort = sc.find_all_lm(trainpoints, users, plsa_user_topic, plsa_doc_top
 
 
 """Average score with different hour"""
-for i in range(14,21):
+for i in range(12,19):
 	if i%2 == 0:
 
 		avg_f = open(AVG_HR_FILE,'a')
@@ -152,7 +152,9 @@ for i in range(14,21):
 		sc.hour = i
 		"""prefixDFS"""
 		sc.topK = []
-		if i <= 9:
+		sc.hashmap = {}
+		# sc.prefixDFS(clus_hr_sort, frozenset())
+		if i <= 10:
 			sc.prefixDFS(clus_hr_sort, frozenset())
 		else:
 			sc.prefixDFS(clus_hr_sort[:35], frozenset())

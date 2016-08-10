@@ -9,7 +9,7 @@ from sklearn.decomposition import nmf
 numK = 3
 topK = []
 hashmap = {}
-hour = 5 #time for trip
+hour = 8 #time for trip
 T0 = 8 #default starting time
 
 topK_cmp = []
@@ -49,6 +49,9 @@ list_sim = []
 list_ulm = []
 list_time = []
 landmarks = []
+
+#'plsa'or'lda'
+mode = 'lda'
 
 """estimate trans/clus time, order score"""
 def estTransOrder(points, users, cluster_centers):
@@ -296,7 +299,7 @@ def lmsOfClusHr(users, user_topic, doc_topic, points, spe_topic_vec, user):
                             score = sum(lm_choose[:,2])
                             # print 'score'+str(score)
                         
-                            clus_hr_lms.append([lid, hr, score*kls, lm_choose])
+                            clus_hr_lms.append([lid, hr, score/kls, lm_choose])
                         # print '\n'
 
         clus_hr_sort = sorted(clus_hr_lms, key=itemgetter(2), reverse = True )
@@ -343,15 +346,15 @@ def find_all_lm(points, users, user_topic, doc_topic, spe_topic_vec, load_by_fil
     if len(user)==0:
         spe_clus = True
 
-    if not spe_clus and load_by_file and os.path.isfile(fileName):
+    if not spe_clus and load_by_file and os.path.isfile(fileName) and mode == 'plsa':
         lm_score_sort = []
 
-        # f = open(fileName,'r')
-        # for line in f.readlines():
-        #     lm, time, score = line.split()
-        #     lm_score_sort.append([float(lm), float(time), float(score)])
-        # print 'load lm_score '
-        # return np.array(lm_score_sort)
+        f = open(fileName,'r')
+        for line in f.readlines():
+            lm, time, score = line.split()
+            lm_score_sort.append([float(lm), float(time), float(score)])
+        print 'load lm_score '
+        return np.array(lm_score_sort)
 
     else:
 
@@ -439,11 +442,11 @@ def find_all_lm(points, users, user_topic, doc_topic, spe_topic_vec, load_by_fil
                     
         lm_score = np.array(sorted(lm_score, key=itemgetter(2,1) ))
 
-        # if load_by_file and not spe_clus:
-        #     f = open(fileName,'w')
-        #     for lm, time, score in lm_score:
-        #         f.write(str(lm)+' '+str(time)+' '+str(score)+'\n')
-        #     f.close()
+        if load_by_file and not spe_clus and mode == 'plsa':
+            f = open(fileName,'w')
+            for lm, time, score in lm_score:
+                f.write(str(lm)+' '+str(time)+' '+str(score)+'\n')
+            f.close()
 
         return lm_score
 

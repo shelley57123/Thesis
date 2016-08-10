@@ -104,8 +104,8 @@ print 'randpoints:'
 print len(randpoints)
 
 """adjust weight between 3 parameter"""
-for j in range(1,10):
-	for i in range(1,11-j):
+for j in range(0,11):
+	for i in range(0,11-j):
 		para = open(PARA_FILE,'a')
 
 		sc.popImp = i*0.1
@@ -118,6 +118,7 @@ for j in range(1,10):
 		clus_hr_sort = sc.lmsOfClusHr(users, user_topic, doc_topic, randpoints, [], users[sc.User])
 
 		sc.topK = []
+		sc.hashmap = {}
 		sc.clus_hr_sort = []
 		"""prefixDFS"""
 		sc.prefixDFS(clus_hr_sort, frozenset())
