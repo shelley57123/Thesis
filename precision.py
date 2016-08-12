@@ -35,6 +35,35 @@ USER_FILE = './data/user 30.txt'
 ZW_FILE = './data/plsaZW.txt'
 DZ_FILE = './data/plsaDZ.txt'
 
+
+def max_k(kscore, max_K_clus, thisClus):
+    if len(max_K_clus)>0 and thisClus in np.array(max_K_clus)[:,0]:
+        if kscore > sc.map_col(max_K_clus, 0, 1, thisClus):
+            row = list(np.array(max_K_clus)[:,0]).index(thisClus)
+            max_K_clus[row][1] = kscore
+            max_K_clus = sorted(max_K_clus, key=itemgetter(1),reverse=True)
+    else:
+        max_K_clus.append([thisClus, kscore])
+        max_K_clus = sorted(max_K_clus, key=itemgetter(1),reverse=True)
+        if len(max_K_clus) > sc.numK:
+            max_K_clus = max_K_clus[:sc.numK]
+    return max_K_clus
+
+def cal_hit(max_K_clus, max_K_lm, last_clus, last_lm, hit_clus, hit, hit_max):
+    max_K_clus = np.array(max_K_clus)
+    K_clus = max_K_clus[:,0]
+    if last_clus in K_clus:
+        hit_clus += 1 
+    max_K_lm = np.array(max_K_lm)
+    K_lm = max_K_lm[:,0]
+    if last_lm in K_lm:
+        hit += 1 
+    if last_lm == K_lm[0]:
+        hit_max += 1
+
+    return [hit_clus, hit, hit_max, K_clus, K_lm]
+
+
 # def main():
 print '===========Start Time==========='
 print time.strftime('%Y-%m-%d %A %X',time.localtime(time.time())) 
@@ -144,6 +173,9 @@ for i, the_user in enumerate(randusers):
         lm_score_sort = sc.find_all_lm(somepoints, users, plsa_user_topic, plsa_doc_topic, [], True, the_user)
         
         for diffClusIdx, diffLmIdx, path in user_paths:
+            
+            total += 1
+
             pastClus = np.unique(path[:diffClusIdx+1,-2])
             startClus = path[diffClusIdx,-2]
 
@@ -173,154 +205,64 @@ for i, the_user in enumerate(randusers):
                     clusTime = sc.clus_time[thisClus][ktime%24]
 
                     kscore = thisScore * cond * clusTime
-                    if len(max_K_clus)>0 and thisClus in np.array(max_K_clus)[:,0]:
-                        if kscore > sc.map_col(max_K_clus, 0, 1, thisClus):
-                            row = np.array(max_K_clus)[:,0].index(thisClus)
-                            max_K_clus[row][1] = kscore
-                            max_K_clus = sorted(max_K_clus, key=itemgetter(1),reverse=True)
-                    else:
-                        max_K_clus.append([thisClus, kscore])
-                        max_K_clus = sorted(max_K_clus, key=itemgetter(1),reverse=True)
-                        if len(max_K_clus) > sc.numK:
-                            max_K_clus = max_K_clus[:sc.numK]
+                    max_K_clus = max_k(kscore, max_K_clus, thisClus)
 
                     kscore_pop = thisScore_noPop * cond * clusTime
-                    if len(max_K_clus_pop)>0 and thisClus in np.array(max_K_clus_pop)[:,0]:
-                        if kscore_pop > sc.map_col(max_K_clus_pop, 0, 1, thisClus):
-                            row = np.array(max_K_clus_pop)[:,0].index(thisClus)
-                            max_K_clus_pop[row][1] = kscore_pop
-                            max_K_clus_pop = sorted(max_K_clus_pop, key=itemgetter(1),reverse=True)
-                    else:
-                        max_K_clus_pop.append([thisClus, kscore_pop])
-                        max_K_clus_pop = sorted(max_K_clus_pop, key=itemgetter(1),reverse=True)
-                        if len(max_K_clus_pop) > sc.numK:
-                            max_K_clus_pop = max_K_clus_pop[:sc.numK]
+                    max_K_clus_pop = max_k(kscore_pop, max_K_clus_pop, thisClus)
 
                     kscore_sim = thisScore_noSim * cond * clusTime
-                    if len(max_K_clus_sim)>0 and thisClus in np.array(max_K_clus_sim)[:,0]:
-                        if kscore_sim > sc.map_col(max_K_clus_sim, 0, 1, thisClus):
-                            row = np.array(max_K_clus_sim)[:,0].index(thisClus)
-                            max_K_clus_sim[row][1] = kscore_sim
-                            max_K_clus_sim = sorted(max_K_clus_sim, key=itemgetter(1),reverse=True)
-                    else:
-                        max_K_clus_sim.append([thisClus, kscore_sim])
-                        max_K_clus_sim = sorted(max_K_clus_sim, key=itemgetter(1),reverse=True)
-                        if len(max_K_clus_sim) > sc.numK:
-                            max_K_clus_sim = max_K_clus_sim[:sc.numK]
+                    max_K_clus_sim = max_k(kscore_sim, max_K_clus_sim, thisClus)
 
                     kscore_order = thisScore * clusTime
-                    if len(max_K_clus_order)>0 and thisClus in np.array(max_K_clus_order)[:,0]:
-                        if kscore_order > sc.map_col(max_K_clus_order, 0, 1, thisClus):
-                            row = np.array(max_K_clus_order)[:,0].index(thisClus)
-                            max_K_clus_order[row][1] = kscore_order
-                            max_K_clus_order = sorted(max_K_clus_order, key=itemgetter(1),reverse=True)
-                    else:
-                        max_K_clus_order.append([thisClus, kscore_order])
-                        max_K_clus_order = sorted(max_K_clus_order, key=itemgetter(1),reverse=True)
-                        if len(max_K_clus_order) > sc.numK:
-                            max_K_clus_order = max_K_clus_order[:sc.numK]
-
-
+                    max_K_clus_order = max_k(kscore_order, max_K_clus_order, thisClus)
+                    
 
                     for lmId, lm_time, lm_score, lm_pop, lm_sim, lm_ulm in lms:
 
                         kscore = lm_score * cond * clusTime
-                        if len(max_K_lm)>0 and lmId in np.array(max_K_lm)[:,0]:
-                            if kscore > sc.map_col(max_K_lm, 0, 1, lmId):
-                                row = np.array(max_K_lm)[:,0].index(lmId)
-                                max_K_lm[row][1] = kscore
-                                max_K_lm = sorted(max_K_lm, key=itemgetter(1),reverse=True)
-                        else:
-                            max_K_lm.append([lmId, kscore])
-                            max_K_lm = sorted(max_K_lm, key=itemgetter(1),reverse=True)
-                            if len(max_K_lm) > sc.numK:
-                                max_K_lm = max_K_lm[:sc.numK]
+                        max_K_lm = max_k(kscore, max_K_lm, lmId)
 
                         kscore_pop = (lm_sim+lm_ulm) * cond * clusTime
-                        if len(max_K_lm_pop)>0 and lmId in np.array(max_K_lm_pop)[:,0]:
-                            if kscore_pop > sc.map_col(max_K_lm_pop, 0, 1, lmId):
-                                row = np.array(max_K_lm_pop)[:,0].index(lmId)
-                                max_K_lm_pop[row][1] = kscore_pop
-                                max_K_lm_pop = sorted(max_K_lm_pop, key=itemgetter(1),reverse=True)
-                        else:
-                            max_K_lm_pop.append([lmId, kscore_pop])
-                            max_K_lm_pop = sorted(max_K_lm_pop, key=itemgetter(1),reverse=True)
-                            if len(max_K_lm_pop) > sc.numK:
-                                max_K_lm_pop = max_K_lm_pop[:sc.numK]
+                        max_K_lm_pop = max_k(kscore_pop, max_K_lm_pop, lmId)
 
                         kscore_sim = (lm_pop+lm_ulm) * cond * clusTime
-                        if len(max_K_lm_sim)>0 and lmId in np.array(max_K_lm_sim)[:,0]:
-                            if kscore_sim > sc.map_col(max_K_lm_sim, 0, 1, lmId):
-                                row = np.array(max_K_lm_sim)[:,0].index(lmId)
-                                max_K_lm_sim[row][1] = kscore_sim
-                                max_K_lm_sim = sorted(max_K_lm_sim, key=itemgetter(1),reverse=True)
-                        else:
-                            max_K_lm_sim.append([lmId, kscore_sim])
-                            max_K_lm_sim = sorted(max_K_lm_sim, key=itemgetter(1),reverse=True)
-                            if len(max_K_lm_sim) > sc.numK:
-                                max_K_lm_sim = max_K_lm_sim[:sc.numK]
+                        max_K_lm_sim = max_k(kscore_sim, max_K_lm_sim, lmId)
 
                         kscore_order = lm_score * clusTime
-                        if len(max_K_lm_order)>0 and lmId in np.array(max_K_lm_order)[:,0]:
-                            if kscore_order > sc.map_col(max_K_lm_order, 0, 1, lmId):
-                                row = np.array(max_K_lm_order)[:,0].index(lmId)
-                                max_K_lm_order[row][1] = kscore_order
-                                max_K_lm_order = sorted(max_K_lm_order, key=itemgetter(1),reverse=True)
-                        else:
-                            max_K_lm_order.append([lmId, kscore_order])
-                            max_K_lm_order = sorted(max_K_lm_order, key=itemgetter(1),reverse=True)
-                            if len(max_K_lm_order) > sc.numK:
-                                max_K_lm_order = max_K_lm_order[:sc.numK]
-                    # if kscore > max_score:
-                    #     max_clus = thisClus
-                    #     max_score = kscore 
-            max_K_clus = np.array(max_K_clus)
-            K_clus = max_K_clus[:,0]
-            if path[-1,-2] in K_clus:
-                hit_clus += 1 
-            max_K_lm = np.array(max_K_lm)
-            K_lm = max_K_lm[:,0]
-            if path[-1,-1] in K_lm:
-                hit += 1 
-            if path[-1,-1] == K_lm[0]:
-                hit_max += 1
+                        max_K_lm_order = max_k(kscore_order, max_K_lm_order, lmId)
+                        
+            hit_clus, hit, hit_max, K_clus, K_lm = cal_hit(max_K_clus, max_K_lm, \
+                path[-1,-2], path[-1,-1], hit_clus, hit, hit_max)
+            hit_clus_pop, hit_pop, hit_max_pop, K_clus_pop, K_lm_pop = cal_hit(max_K_clus_pop, \
+                max_K_lm_pop, path[-1,-2], path[-1,-1], hit_clus_pop, hit_pop, hit_max_pop)
+            hit_clus_sim, hit_sim, hit_max_sim, K_clus_sim, K_lm_sim  = cal_hit(max_K_clus_sim, \
+                max_K_lm_sim, path[-1,-2], path[-1,-1], hit_clus_sim, hit_sim, hit_max_sim)
+            hit_clus_order, hit_order, hit_max_order, K_clus_order, K_lm_order  = cal_hit(max_K_clus_order, \
+                max_K_lm_order, path[-1,-2], path[-1,-1], hit_clus_order, hit_order, hit_max_order)
 
+            print path
+            print 'user, #userpaths, pathlen, Total'
+            print i, len(user_paths), len(paths), total
 
-            max_K_clus_pop = np.array(max_K_clus_pop)
-            K_clus_pop = max_K_clus_pop[:,0]
-            if path[-1,-2] in K_clus_pop:
-                hit_clus_pop += 1
-            max_K_lm_pop = np.array(max_K_lm_pop)
-            K_lm_pop = max_K_lm_pop[:,0]
-            if path[-1,-1] in K_lm_pop:
-                hit_pop += 1         
-            if path[-1,-1] == K_lm_pop[0]:
-                hit_max_pop += 1
+            print 'Hit_clus, K_clus, Precision'
+            print hit_clus, K_clus, hit_clus/float(total)
+            print 'Hit, hit_max, K_lm, Precision'
+            print hit, hit_max, K_lm, hit/float(total), hit_max/float(total)
 
+            print 'Hit_clus_pop, K_clus_pop, Precision'
+            print hit_clus_pop, K_clus_pop, hit_clus_pop/float(total)
+            print 'Hit_pop, hit_max_pop, K_lm_pop, Precision'
+            print hit_pop, hit_max_pop, K_lm_pop, hit_pop/float(total), hit_max_pop/float(total)
 
-            max_K_clus_sim = np.array(max_K_clus_sim)
-            K_clus_sim = max_K_clus_sim[:,0]
-            if path[-1,-2] in K_clus_sim:
-                hit_clus_sim += 1
-            max_K_lm_sim = np.array(max_K_lm_sim)
-            K_lm_sim = max_K_lm_sim[:,0]
-            if path[-1,-1] in K_lm_sim:
-                hit_sim += 1         
-            if path[-1,-1] == K_lm_sim[0]:
-                hit_max_sim += 1
+            print 'Hit_clus_sim, K_clus_sim, Precision'
+            print hit_clus_sim, K_clus_sim, hit_clus_sim/float(total)
+            print 'Hit_sim, hit_max_sim, K_lm_sim, Precision'
+            print hit_sim, hit_max_sim, K_lm_sim, hit_sim/float(total), hit_max_sim/float(total)
 
-
-            max_K_clus_order = np.array(max_K_clus_order)
-            K_clus_order = max_K_clus_order[:,0]
-            if path[-1,-2] in K_clus_order:
-                hit_clus_order += 1
-            max_K_lm_order = np.array(max_K_lm_order)
-            K_lm_order = max_K_lm_order[:,0]
-            if path[-1,-1] in K_lm_order:
-                hit_order += 1         
-            if path[-1,-1] == K_lm_order[0]:
-                hit_max_order += 1
-
+            print 'Hit_clus_order, K_clus_order, Precision'
+            print hit_clus_order, K_clus_order, hit_clus_order/float(total)
+            print 'Hit_order, hit_max_order, K_lm_order, Precision'
+            print hit_order, hit_max_order, K_lm_order, hit_order/float(total), hit_max_order/float(total)
 
             pastLm = np.unique(path[:diffLmIdx+1,-1])
             startLm = path[diffLmIdx,-1]
@@ -378,43 +320,20 @@ for i, the_user in enumerate(randusers):
                 plsa_hit += 1
             if path[-1,-1] == K_lm[0]:
                 plsa_hit_max += 1
-            total += 1
 
-            print path
-            print 'user, #userpaths, pathlen, Total'
-            print i, len(user_paths), len(paths), total
+            
 
-            print 'Hit_clus, K_clus, Precision'
-            print hit_clus, K_clus, hit_clus/float(total)
-            print 'Hit, hit_max, K_lm, Precision'
-            print hit, hit_max, K_lm, hit/float(total), hit_max/float(total)
+            print 'Plsa Hit, plsa_hit_max, K_lm, Precision:'
+            print plsa_hit, plsa_hit_max, K_lm, plsa_hit/float(total), plsa_hit_max/float(total)
 
-            print 'Hit_pop, K_clus_pop, Precision'
-            print hit_clus_pop, K_clus_pop, hit_clus_pop/float(total)
-            print 'Hit_pop, hit_max_pop, K_lm_pop, Precision'
-            print hit_pop, hit_max_pop, K_lm_pop, hit_pop/float(total), hit_max_pop/float(total)
-
-            print 'Hit_sim, K_clus_sim, Precision'
-            print hit_clus_sim, K_clus_sim, hit_clus_sim/float(total)
-            print 'Hit_sim, hit_max_sim, K_lm_sim, Precision'
-            print hit_sim, hit_max_sim, K_lm_sim, hit_sim/float(total), hit_max_sim/float(total)
-
-            print 'Hit_order, K_clus_order, Precision'
-            print hit_clus_order, K_clus_order, hit_clus_order/float(total)
-            print 'Hit_order, hit_max_order, K_lm_order, Precision'
-            print hit_order, hit_max_order, K_lm_order, hit_order/float(total), hit_max_order/float(total)
-
-            print 'Plsa Hit, plsa_hit_max, Precision:'
-            print plsa_hit, plsa_hit_max, plsa_hit/float(total), plsa_hit_max/float(total)
-
-print 'Precision of Total:'
-print hit/float(total)
+# print 'Precision of Total:'
+# print hit/float(total)
 
 
 """prefixDFS"""
-sc.prefixDFS(clus_hr_sort, frozenset())
-print 'TopK'
-print sc.topK
+# sc.prefixDFS(clus_hr_sort, frozenset())
+# print 'TopK'
+# print sc.topK
 
 
 print '============End Time============'
@@ -424,3 +343,4 @@ print '================================'
 
 # if __name__ == '__main__':
 #     main()
+

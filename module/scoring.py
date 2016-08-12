@@ -373,6 +373,14 @@ def find_all_lm(points, users, user_topic, doc_topic, spe_topic_vec, load_by_fil
                 sim_users.append([user, np.dot(topic_row,user_topic[user_idx]) ])
 
         sim_sorted = np.array(sorted(sim_users, key=itemgetter(1),reverse=True ))
+        print 'sim_sorted first, last, 100th'
+        print sim_sorted[0], sim_sorted[-1], sim_sorted[100]
+
+        sim_users = []
+        for user, score in sim_sorted:
+            if float(score) > 0.1:
+                sim_users.append([user, score])
+        print 'sim_user_len:', len(sim_users)
 
         lm_score = []
         #estimate all scores of lms of this clus
@@ -396,12 +404,11 @@ def find_all_lm(points, users, user_topic, doc_topic, spe_topic_vec, load_by_fil
             if len(landmark) > 20:
 
                 # 2. rate of similar people visiting lm
-                n = 100
+                # n = 100
                 c = 0
                 landmark_users = points[the_lm, 1]
-                
-                topN_sim_users = sim_sorted[:n]
-                for user in topN_sim_users:
+
+                for user in sim_users:
                     if user[0] in landmark_users:
                         c += 1
                 sim = c
